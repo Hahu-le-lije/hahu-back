@@ -9,6 +9,8 @@ use App\Services\RabbitRpcClient;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
 use Exception;
+use Illuminate\Support\Facades\Cache;
+
 class SubscriptionController extends Controller
 {
 
@@ -61,7 +63,13 @@ class SubscriptionController extends Controller
         }
 
         try {
-            $res = $this->rpc->call('parent_service_queue', ['action' => 'get_parent', 'parent_id' => $userId]);
+            $res = Cache::remember('user_' . $userId, now()->addMinutes(30), function () use ($userId) {
+                return $this->rpc->call(
+                    'parent_service_queue',
+                    ['action' => 'get_parent', 'parent_id' => $userId]
+                );
+            }, ); 
+             
             if (!$res || $res['status'] !== 'success') { //! $res['status'] might need to be change into  $res->status 
                 return response()->json(['message' => 'User not found'], 404);
             }
@@ -89,11 +97,13 @@ class SubscriptionController extends Controller
     public function addChildToSubscription(Subscription $subscription, string $child)
     {
         //? if there were an exception thrown in the following lines, it would be caught by the global exception handler and a 500 response will be returned, so we don't need to handle it here.
-        $res = $this->rpc->call(
-            'user_service_queue',
-            ['action' => 'get_child', 'child_id' => $child]
-        );
-
+        $res = Cache::remember('child_' . $child, now()->addMinutes(30), function () use ($child) {
+            return $this->rpc->call(
+                'user_service_queue',
+                ['action' => 'get_child', 'child_id' => $child]
+            );
+        });
+        
         if (!$res || $res['status'] !== 'success') {
             return response()->json(['message' => 'Child not found'], 404);
         }
@@ -131,12 +141,12 @@ class SubscriptionController extends Controller
                 ['action' => 'link_child_subscription', 'child_id' => $child->id, 'subscription_id' => $subscription->id]
             );
             if (!$res || $res->status !== 'success') {
-                return response()->json(['message' => 'Failed to link child to subscription'], 500);
+                return response()->json(['message' => 'Failed to link child to subscription'], 400);
             }
             return response()->json(['message' => 'Child added to subscription successfully'], 200);
         } catch (Exception $e) {
             // Catch database errors and return a 500 response
-            return response()->json(['message' => 'An error occurred while linking the child.'], 500);
+            return response()->json(['message' => 'An error occurred while linking the child to a subscription.'], 500);
         }
     }
 
