@@ -30,7 +30,7 @@ class PaymentController extends Controller
             'amount' => SubscriptionManager::calculatePlanAmount($planType, $maxSlots),
             'currency' => 'ETB',
             'callback_url' => route('subscription.create'),
-            // 'return_url' => config('subscriptiontype.return_url'),
+            // 'return_url' => config('subscriptiontype.return_url'), //! I need to get the return url from the front end team
             // Customization object
             'customization' => [
                 'title' => 'Hahu Lelije',
@@ -53,14 +53,12 @@ class PaymentController extends Controller
             ]
         ]);
 
+        // 2. Validate that we actually got a URL back
+        if ($response['status'] !== 'success' || !isset($response['data']['checkout_url'])) {
+            return response()->json(['status' => 'failed', 'message' => "invalid checkout url"], 201);
+            }
 
         $checkoutUrl = $response['data']['checkout_url'];
-
-        // 2. Validate that we actually got a URL back
-        if (!$checkoutUrl) {
-            return response()->json(['status' => 'failed', 'message' => "invalid checkout url"], 201);
-        }
-
         // 3. Redirect the user to the external Chapa checkout page
         return response()->json(['status' => 'success', 'checkout_url' => $checkoutUrl], 200);
 
