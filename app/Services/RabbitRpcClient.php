@@ -4,6 +4,7 @@ namespace App\Services;
 
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
+use PhpAmqpLib\Exception\AMQPTimeoutException;
 use Exception;
 
 class RabbitRpcClient
@@ -24,10 +25,15 @@ class RabbitRpcClient
             config('queue.connections.rabbitmq.hosts.0.password')
         );
         $this->channel = $this->connection->channel();
-        $this->mq_cancel_timeout = config('queue.connections.rabbitmq.hosts.0.cancel_timeout');
+        $this->mq_cancel_timeout = (int) config('queue.connections.rabbitmq.hosts.0.cancel_timeout');
 
-        // Declare a unique, temporary callback queue for THIS specific request
-        list($this->callback_queue, , ) = $this->channel->queue_declare("", false, false, true, false);
+        [$this->callback_queue, ,] = $this->channel->queue_declare(
+            "",
+            false,
+            false,
+            true,
+            true
+        );
 
         $this->channel->basic_consume(
             $this->callback_queue,
@@ -36,10 +42,15 @@ class RabbitRpcClient
             true,
             false,
             false,
-            array($this, 'onResponse')
+            [$this, 'onResponse']
         );
     }
 
+    public function __destruct()
+    {
+        $this->channel->close();
+        $this->connection->close();
+    }
     public function onResponse($req)
     {
         if ($req->get('correlation_id') == $this->corr_id) {
@@ -54,7 +65,8 @@ class RabbitRpcClient
 
         $msg = new AMQPMessage(json_encode($payload), [
             'correlation_id' => $this->corr_id,
-            'reply_to' => $this->callback_queue
+            'reply_to' => $this->callback_queue,
+            'expiration'     =>  (string) (1000 * $this->mq_cancel_timeout) // TTL in milliseconds (e.g., 30 seconds)
         ]);
 
         $this->channel->basic_publish($msg, '', $queueName);
@@ -62,12 +74,11 @@ class RabbitRpcClient
         // Wait until the response arrives
         $startTime = time();
         while (!$this->response) {
-            // Check if we have exceeded the allowed timeout
-            if ((time() - $startTime) > $this->mq_cancel_timeout) {
-                throw new Exception("Request timed out after {$this->mq_cancel_timeout} seconds.");
+            try {
+                $this->channel->wait(null, false, $this->mq_cancel_timeout);
+            } catch (AMQPTimeoutException $e) {
+                throw new Exception("RPC call timed out after {$this->mq_cancel_timeout} seconds");
             }
-
-            $this->channel->wait(null, false, 1);
         }
 
         return json_decode($this->response, true);

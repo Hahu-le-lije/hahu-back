@@ -16,20 +16,22 @@ class PaymentController extends Controller
     }
     public static function initializePayment(Request $request)
     {
-
+        
         $validatedData = $request->validate([
             'plan_type' => 'required|string',
             'max_slots' => 'required|integer|min:1',
         ]);
+        
+
         $planType = $validatedData['plan_type'];
         $maxSlots = $validatedData['max_slots'];
         $ref = Chapa::generateReference('HahuSub_'.Auth::id());
-        
+        error_log("generated ref ". $ref);
         $response = Chapa::initializePayment([
             'tx_ref' => $ref,
             'amount' => SubscriptionManager::calculatePlanAmount($planType, $maxSlots),
             'currency' => 'ETB',
-            'callback_url' => route('subscription.create'),
+            'callback_url' => route('subscription.create'), //?  use this url for testing "https://from-chapa-payment.free.beeceptor.com"
             // 'return_url' => config('subscriptiontype.return_url'), //! I need to get the return url from the front end team
             // Customization object
             'customization' => [
@@ -47,12 +49,12 @@ class PaymentController extends Controller
                     ],
                     [
                         'key' => 'max_slots',
-                        'value' => $maxSlots
+                        'value' => (string) $maxSlots
                     ],
                 ]
             ]
         ]);
-
+        error_log(json_encode($response));
         // 2. Validate that we actually got a URL back
         if ($response['status'] !== 'success' || !isset($response['data']['checkout_url'])) {
             return response()->json(['status' => 'failed', 'message' => "invalid checkout url"], 201);

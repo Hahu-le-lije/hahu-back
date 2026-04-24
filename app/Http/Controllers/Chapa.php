@@ -30,13 +30,13 @@ class Chapa
     public static function initializePayment(array $data): array
     {
         // Use the static helper and static property
-        print_r($data);
+        error_log("Initializing payment with data: " . json_encode($data). "\n");
         $response = Http::withToken(self::getSecretKey())->post(
             self::$baseUrl . '/transaction/initialize',
             $data
         );
-        print ('Hello \n\n\n Hello');
-        print_r($response);
+        error_log("Chapa API response: " . $response . "\n");
+        
         return $response->json();
     }
 

@@ -14,7 +14,7 @@ Route::middleware('auth.jwt')->group(function () {
     Route::get('/subscriptions/{subscription}', [SubscriptionController::class, 'getSubscriptionDetails']);
     Route::get('/subscriptions/list', [SubscriptionController::class, 'listUser Subscriptions']);
 });
-Route::get('/get-subscription-types', [PaymentController::class, 'showPaymentForm'])->name('subscription.types'); //! for debugging, remove later
+Route::get('/get-subscription-types', [PaymentController::class, 'showPaymentForm'])->name('subscription.types'); //! for debugging, remove later፣ including the controller method 
 
 // The callback url after a payment
 // Route::get('/callback/{reference}', 'App\Http\Controllers\ChapaController@callback')->name('payment.callback');
