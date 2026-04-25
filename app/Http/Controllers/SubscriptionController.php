@@ -34,7 +34,10 @@ class SubscriptionController extends Controller
         $status = $validatedData['status'];
 
         if (Subscription::Where('tx_ref', $transactionReference)->first()) {
-            return response()->json(['message' => 'Transaction already completed'], 400);
+            return response()->json([
+                'status' => 'failed',
+                'error' => 'Transaction already completed'
+            ], 400);
         }
 
         // check if the transaction didn't exist in the database
@@ -57,9 +60,8 @@ class SubscriptionController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'status' => 'error',
-                'message' => 'Transaction data structure is invalid',
-                'errors' => $validator->errors()
+                'status' => 'failed',
+                'error' => 'Transaction data structure is invalid',
             ], 422);
         }
 
@@ -84,11 +86,17 @@ class SubscriptionController extends Controller
         }
 
         if ($status !== 'success' || !$plan_type || !$max_slots || !$end_at || $end_at->isPast()) {
-            return response()->json(['message' => 'Payment not successfuly Completed'], 400);
+            return response()->json([
+                'status' => 'failed',
+                'error' => 'Payment not successfully completed'
+            ], 400);
         }
 
         if ($amount != (SubscriptionManager::calculatePlanAmount($plan_type, $max_slots))) {
-            return response()->json(['message' => 'Amount mismatch'], 400);
+            return response()->json([
+                'status' => 'failed',
+                'error' => 'Amount mismatch'
+            ], 400);
         }
 
         try {
@@ -100,11 +108,17 @@ class SubscriptionController extends Controller
                 );
             }, );
 
-            if (!$res || $res['status'] !== 'success') { 
-                return response()->json(['message' => 'User not found'], 404);
+            if (!$res || $res['status'] !== 'success') {
+                return response()->json([
+                    'status' => 'failed',
+                    'error' => 'User not found'
+                ], 404);
             }
         } catch (Exception $th) {
-            return response()->json(['message' => 'An error occurred while fetching user data.', 'error' => $th->getMessage()], 500);
+            return response()->json([
+                'status' => 'failed',
+                'error' => 'An error occurred while fetching user data.'
+            ], 500);
         }
 
         // FIX 2: Explicitly create using the Subscription model to ensure 
@@ -119,8 +133,11 @@ class SubscriptionController extends Controller
         ]);
 
         return response()->json([
+            'status' => 'success',
             'message' => 'Subscription created successfully',
-            'subscription' => $subscription
+            'data' => [
+                'subscription' => $subscription
+            ]
         ], 201);
     }
 
@@ -137,16 +154,25 @@ class SubscriptionController extends Controller
             });
 
         } catch (Exception $th) {
-            return response()->json(['message' => 'An error occurred while fetching child data.', 'error' => $th->getMessage()], 500);
+            return response()->json([
+                'status' => 'failed',
+                'error' => 'An error occurred while fetching child data.',
+            ], 500);
         }
 
         if (!$res || $res['status'] !== 'success') {
-            return response()->json(['message' => 'Child not found'], 404);
+            return response()->json([
+                'status' => 'failed',
+                'error' => 'Child not found'
+            ], 404);
         }
 
         // Validate the response structure
         if (!isset($res['data']['subscription_id']) || !isset($res['data']['parent_id'])) {
-            return response()->json(['message' => 'Invalid response data structure'], 500);
+            return response()->json([
+                'status' => 'failed',
+                'error' => 'Invalid response data structure'
+            ], 500);
         }
 
 
@@ -154,12 +180,18 @@ class SubscriptionController extends Controller
 
         // Validate ownership
         if ($subscription->owner_id != Auth::id() || $child['parent_id'] != Auth::id()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json([
+                'status' => 'failed',
+                'error' => 'Unauthorized'
+            ], 403);
         }
 
         // Check if the subscription has available slots
         if ($subscription->available_slots <= 0) {
-            return response()->json(['message' => 'No available slots in the subscription'], 400);
+            return response()->json([
+                'status' => 'failed',
+                'error' => 'No available slots in the subscription'
+            ], 400);
         }
 
         // Check if the child is already associated with a subscription
@@ -171,7 +203,10 @@ class SubscriptionController extends Controller
 
         if ($subscriptionOfChild->ends_at->isFuture() && $existingFee >= $newFee) {
             //? the user is neither have an expired subscription nor they are trying to upgrade to a more expensive plan, so we block the action and return an error message
-            return response()->json(['message' => 'Child is already associated with an active subscription'], 400);
+            return response()->json([
+                'status' => 'failed',
+                'error' => 'Child is already associated with an active subscription'
+            ], 400);
         }
 
 
@@ -183,16 +218,23 @@ class SubscriptionController extends Controller
                 ['action' => 'link_child_subscription', 'child_id' => $child_id, 'subscription_id' => $subscription->id]
             );
             if (!$res || $res['status'] !== 'success') {
-                return response()->json(['message' => 'Failed to link child to subscription'], 400);
+                return response()->json([
+                    'status' => 'failed',
+                    'error' => 'Failed to link child to subscription'
+                ], 400);
             }
 
             //? Decrement the available slots in the subscription
             $subscription->decrement('available_slots');
-            return response()->json(['message' => 'Child added to subscription successfully'], 200);
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Child added to subscription successfully'
+            ], 200);
         } catch (Exception $e) {
             // Catch database errors and return a 500 response
             return response()->json([
-                'message' => 'An error occurred while linking the child to a subscription.',
+                'status' => 'failed',
+                'message' => 'An error occurred while linking the child to a subscription.'
             ], 500);
         }
     }
@@ -200,9 +242,17 @@ class SubscriptionController extends Controller
     public function getSubscriptionDetails(Subscription $subscription)
     {
         if ($subscription->owner_id != Auth::id()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json([
+                'status' => 'failed',
+                'error' => 'Unauthorized'
+            ], 403);
         }
-        return response()->json(['subscription' => $subscription], 200);
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'subscription' => $subscription
+            ]
+        ], 200);
     }
 
     public function listUserSubscriptions()
@@ -213,6 +263,11 @@ class SubscriptionController extends Controller
             ->limit(5)
             ->get();
 
-        return response()->json(['subscriptions' => $subscriptions], 200);
+        return response()->json([
+            'status'=> 'success',
+            'data'=> [
+                'subscriptions' => $subscriptions
+            ]
+        ], 200);
     }
 }
