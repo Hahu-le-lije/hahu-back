@@ -10,8 +10,8 @@ Route::get('/', function () {
 
 Route::middleware('auth.jwt')->group(function () {
     Route::post('/initialize-payment', [PaymentController::class, 'initializePayment'])->name('pay.initialize');
-    Route::put('/subscriptions/add-child/{subscription}/{child}', [SubscriptionController::class, 'addChildToSubscription']);
-    Route::get('/subscriptions/{subscription}', [SubscriptionController::class, 'getSubscriptionDetails']);
+    Route::put('/subscriptions/add-child/{subscription}/{child}', [SubscriptionController::class, 'addChildToSubscription'])->whereNumber('subscription');
+    Route::get('/subscriptions/{subscription}', [SubscriptionController::class, 'getSubscriptionDetails'])->whereNumber('subscription');
     Route::get('/subscriptions/list', [SubscriptionController::class, 'listUser Subscriptions']);
 });
 Route::get('/get-subscription-types', [PaymentController::class, 'showPaymentForm'])->name('subscription.types'); //! for debugging, remove later፣ including the controller method 
