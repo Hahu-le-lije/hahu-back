@@ -18,7 +18,7 @@ Route::prefix('parents')->group(function () {
 
     Route::middleware('auth:parent')->group(function () {
         Route::post('/logout', [ParentAuthController::class, 'logout']);
-        Route::get('/me', [ParentAuthController::class, 'me']);
+        Route::get('/me', [ParentAuthController::class , 'me']);
     });
 });
 

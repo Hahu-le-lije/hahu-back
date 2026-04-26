@@ -25,7 +25,8 @@ return new class extends Migration
             $table->string('username')->unique();
             $table->string('password'); // hashed
 
-            $table->binary('avatar')->nullable();
+            $table->string('avatar')->nullable();
+            $table->string('subscription_id')->nullable();
             $table->unsignedTinyInteger('age')->nullable();
             $table->date('birthdate')->nullable();
             $table->string('skill_level')->nullable();
