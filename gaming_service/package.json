@@ -19,6 +19,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "microsoft-cognitiveservices-speech-sdk": "^1.49.0",
     "redis": "^5.12.1"
   },
   "devDependencies": {
