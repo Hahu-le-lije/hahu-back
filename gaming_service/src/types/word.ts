@@ -1,7 +1,11 @@
 export interface WordResponse {
-    meaning: string;
-    sentences: string[];
-    phonetic: string;
+  word: string;
+  definition: string;
+  phonetic: string;
+  learning_content: {
+    amharic: string;
+    translation?: string;
+  }[];
 }
 
 export interface WordRequest {

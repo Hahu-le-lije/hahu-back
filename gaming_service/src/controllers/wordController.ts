@@ -1,8 +1,9 @@
 import type {Request,Response} from 'express'
 import {GoogleGenerativeAI} from '@google/generative-ai'
-import type {WordRequest,WordResponse} from '../types/word.ts'
+import type {WordRequest,WordResponse} from '../types/word.js'
 
 const generativeAI=new GoogleGenerativeAI(process.env.GEMINI_API_KEY as string)
+console.log("GEMINI_API_KEY",process.env.GEMINI_API_KEY)
 
 export  const wordDetails=async(req:Request<{},{},WordRequest>,res:Response)=>{
     try{
@@ -40,8 +41,24 @@ export  const wordDetails=async(req:Request<{},{},WordRequest>,res:Response)=>{
         }`;
     const result=await model.generateContent(prompt);
     const responseText=result.response.text();
-    res.status(200).json(JSON.parse(responseText) as WordResponse);
+    console.log("Gemini raw output:", responseText)
+    const cleaned = responseText
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
+    let parsed;
+    try{
+        parsed=JSON.parse(cleaned);
     }catch(error){
+        console.log("JSON parse Failed: ", cleaned);
+        return res.status(500).json({
+            error:"JSON parse Failed",
+            raw:cleaned
+        })
+    }
+    res.status(200).json(parsed as WordResponse);
+    }catch(error){
+        console.error("FULL ERROR:", JSON.stringify(error, null, 2));
         res.status(500).json({error:"Teacher is busy, try again"})
     }
 }

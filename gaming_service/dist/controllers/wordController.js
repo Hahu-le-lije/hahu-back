@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 const generativeAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+console.log("GEMINI_API_KEY", process.env.GEMINI_API_KEY);
 export const wordDetails = async (req, res) => {
     try {
         const { word, language } = req.body;
@@ -36,10 +37,27 @@ export const wordDetails = async (req, res) => {
         }`;
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
-        res.status(200).json(JSON.parse(responseText));
+        console.log("Gemini raw output:", responseText);
+        const cleaned = responseText
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
+        let parsed;
+        try {
+            parsed = JSON.parse(cleaned);
+        }
+        catch (error) {
+            console.log("JSON parse Failed: ", cleaned);
+            return res.status(500).json({
+                error: "JSON parse Failed",
+                raw: cleaned
+            });
+        }
+        res.status(200).json(parsed);
     }
     catch (error) {
+        console.error("FULL ERROR:", JSON.stringify(error, null, 2));
         res.status(500).json({ error: "Teacher is busy, try again" });
     }
 };
-//# sourceMappingURL=wordContorller.js.map
+//# sourceMappingURL=wordController.js.map
