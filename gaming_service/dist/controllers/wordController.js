@@ -1,6 +1,13 @@
+import 'dotenv/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createClient } from 'redis';
 const generativeAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-console.log("GEMINI_API_KEY", process.env.GEMINI_API_KEY);
+const geminiModelName = process.env.GEMINI_MODEL ?? "gemini-3.0-flash";
+const redisClient = createClient({
+    url: process.env.REDIS_URL
+});
+redisClient.on('error', err => console.error('Redis Client Error', err));
+await redisClient.connect();
 export const wordDetails = async (req, res) => {
     try {
         const { word, language } = req.body;
@@ -8,7 +15,14 @@ export const wordDetails = async (req, res) => {
             return res.status(400).json({ error: "word is required" });
             //might need to also add iss with child service to get sub type
         }
-        const model = generativeAI.getGenerativeModel({ model: "gemini-1.5-flash",
+        const cacheKey = `word:${language.toLowerCase()}:${word.trim().toLowerCase()}`;
+        const cache = await redisClient.get(cacheKey);
+        if (cache) {
+            console.log("Cache hit");
+            return res.status(200).json(JSON.parse(cache));
+        }
+        console.log("Cache miss, calling gemini for ", word);
+        const model = generativeAI.getGenerativeModel({ model: geminiModelName,
             generationConfig: { responseMimeType: "application/json" }
         });
         const prompt = `
@@ -37,27 +51,20 @@ export const wordDetails = async (req, res) => {
         }`;
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
+        const parse = JSON.parse(responseText);
+        await redisClient.set(cacheKey, JSON.stringify(parse), {
+            EX: 604800
+        });
         console.log("Gemini raw output:", responseText);
-        const cleaned = responseText
-            .replace(/```json/g, "")
-            .replace(/```/g, "")
-            .trim();
-        let parsed;
-        try {
-            parsed = JSON.parse(cleaned);
-        }
-        catch (error) {
-            console.log("JSON parse Failed: ", cleaned);
-            return res.status(500).json({
-                error: "JSON parse Failed",
-                raw: cleaned
-            });
-        }
-        res.status(200).json(parsed);
+        return res.status(200).json(parse);
     }
     catch (error) {
-        console.error("FULL ERROR:", JSON.stringify(error, null, 2));
-        res.status(500).json({ error: "Teacher is busy, try again" });
+        const err = error;
+        console.log("Error: ", error);
+        res.status(500).json({
+            error: "Teacher is busy, try again",
+            details: err.status ? `Gemini API error ${err.status}: ${err.message ?? "unknown error"}` : undefined
+        });
     }
 };
 //# sourceMappingURL=wordController.js.map
