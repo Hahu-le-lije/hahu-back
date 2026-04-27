@@ -1,7 +1,7 @@
 import 'dotenv/config';
-import express,{ Application} from 'express';
+import express,{ type Application} from 'express';
 import cors from 'cors';
-import wordRoutes from './routes/wordRoutes';
+import wordRoutes from './routes/wordRoutes.js';
 
 const app: Application = express();
 

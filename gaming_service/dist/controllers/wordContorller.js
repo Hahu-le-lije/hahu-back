@@ -1,20 +1,16 @@
-import type {Request,Response} from 'express'
-import {GoogleGenerativeAI} from '@google/generative-ai'
-import type {WordRequest,WordResponse} from '../types/word.ts'
-
-const generativeAI=new GoogleGenerativeAI(process.env.GEMINI_API_KEY as string)
-
-export  const wordDetails=async(req:Request<{},{},WordRequest>,res:Response)=>{
-    try{
-        const {word,language}=req.body;
-        if(!word){
-            return res.status(400).json({error:"word is required"})
+import { GoogleGenerativeAI } from '@google/generative-ai';
+const generativeAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+export const wordDetails = async (req, res) => {
+    try {
+        const { word, language } = req.body;
+        if (!word) {
+            return res.status(400).json({ error: "word is required" });
             //might need to also add iss with child service to get sub type
         }
-    const model=generativeAI.getGenerativeModel({model:"gemini-1.5-flash"
-        ,generationConfig:{responseMimeType:"application/json"}
-    });
-    const prompt = `
+        const model = generativeAI.getGenerativeModel({ model: "gemini-1.5-flash",
+            generationConfig: { responseMimeType: "application/json" }
+        });
+        const prompt = `
         You are an expert Amharic language teacher for children.
         Target Word: "${word}"
         Instruction Language: "${language}"
@@ -38,10 +34,12 @@ export  const wordDetails=async(req:Request<{},{},WordRequest>,res:Response)=>{
             { "amharic": "sentence 5", "translation": "translation here" }
           ]
         }`;
-    const result=await model.generateContent(prompt);
-    const responseText=result.response.text();
-    res.status(200).json(JSON.parse(responseText) as WordResponse);
-    }catch(error){
-        res.status(500).json({error:"Teacher is busy, try again"})
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+        res.status(200).json(JSON.parse(responseText));
     }
-}
+    catch (error) {
+        res.status(500).json({ error: "Teacher is busy, try again" });
+    }
+};
+//# sourceMappingURL=wordContorller.js.map
