@@ -8,7 +8,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::middleware('auth.jwt')->group(function () {
+Route::middleware('clerk.auth')->group(function () {
     Route::post('/initialize-payment', [PaymentController::class, 'initializePayment'])->name('pay.initialize');
     Route::put('/subscriptions/add-child/{subscription}/{child}', [SubscriptionController::class, 'addChildToSubscription'])->whereNumber('subscription');
     Route::get('/subscriptions/{subscription}', [SubscriptionController::class, 'getSubscriptionDetails'])->whereNumber('subscription');
