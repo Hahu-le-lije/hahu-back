@@ -10,7 +10,7 @@ app.use((req, _res, next) => {
     console.log("[REQ]", req.method, req.originalUrl, req.body);
     next();
 });
-app.use('/game/word', wordRoutes);
+app.use('/game', wordRoutes);
 const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`Server is running on port http://localhost:${port} `));
 //# sourceMappingURL=server.js.map

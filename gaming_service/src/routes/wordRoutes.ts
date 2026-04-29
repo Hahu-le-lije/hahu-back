@@ -5,7 +5,7 @@ import { speechController } from "../controllers/speechController.js";
 const router: Router = Router();
 const upload=multer({storage:multer.memoryStorage()})
 
-router.post("/", wordDetails);
+router.post("/word", wordDetails);
 router.post('/speech',upload.single('audio'),speechController)
 
 export default router;
