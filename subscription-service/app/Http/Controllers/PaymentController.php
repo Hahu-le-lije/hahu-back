@@ -25,7 +25,7 @@ class PaymentController extends Controller
 
         $planType = $validatedData['plan_type'];
         $maxSlots = $validatedData['max_slots'];
-        $ref = Chapa::generateReference('HahuSub_' . Auth::id());
+        $ref = Chapa::generateReference('HahuSub_');
         error_log("generated ref " . $ref);
         $response = Chapa::initializePayment([
             'tx_ref' => $ref,
