@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Jobs\LinkChildSubscription;
 use App\Models\Subscription;
 use App\Services\SubscriptionManager;
 use App\Services\RabbitRpcClient;
@@ -215,36 +216,19 @@ class SubscriptionController extends Controller
 
         // Wrap the updates in a database transaction to prevent data corruption 
         // if one of the queries fails.
-        try {
-            $res = $this->rpc->call( //? linking the child to the subscriptoin service
-                'subscription.to.user',
-                ['action' => 'link_child_subscription', 'child_id' => $child_id, 'subscription_id' => $subscription->id]
-            );
-            if (!$res || $res['status'] !== 'success') {
-                return response()->json([
-                    'status' => 'failed',
-                    'error' => 'Failed to link child to subscription'
-                ], 400);
-            }
+        LinkChildSubscription::dispatch($child_id, $subscription->id)->onQueue('subscription.to.user');
 
-            //? Decrement the available slots in the subscription
-            $subscription->decrement('available_slots', 1);
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Child added to subscription successfully'
-            ], 200);
-        } catch (Exception $e) {
-            // Catch database errors and return a 500 response
-            return response()->json([
-                'status' => 'failed',
-                'message' => 'An error occurred while linking the child to a subscription.'
-            ], 500);
-        }
+        //? Decrement the available slots in the subscription
+        $subscription->decrement('available_slots', 1);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Child added to subscription successfully'
+        ], 200);
     }
 
     public function getSubscriptionDetails(string $subscription_id)
     {
-        
+
         $subscription = Subscription::query()->find($subscription_id);
         if (!$subscription) {
             return response()->json([
@@ -269,12 +253,12 @@ class SubscriptionController extends Controller
     public function listUserSubscriptions()
     {
         // Retrieve all subscriptions for the authenticated user
-        error_log('usr id: '.Auth::id());
+        error_log('usr id: ' . Auth::id());
         $subscriptions = Subscription::query()
-        ->where('owner_id', Auth::id())
-        ->orderBy('created_at', 'desc')
-        ->limit(5)
-        ->get();
+            ->where('owner_id', Auth::id())
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
 
 
         return response()->json([
