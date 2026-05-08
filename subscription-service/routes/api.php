@@ -3,6 +3,9 @@
 use Illuminate\Http\Request;
 use App\Http\Controllers\SubscriptionController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\PaymentController;
+use App\Http\Middleware\ClerkAuthMiddleware;
+use App\Models\Subscription;
 
 use function Pest\Laravel\json;
 
@@ -10,6 +13,17 @@ use function Pest\Laravel\json;
 //     return $request->user();
 // })->middleware('auth:sanctum');
 
+Route::get('/', function () {
+    return view('welcome');
+});
+
+Route::middleware(ClerkAuthMiddleware::class)->group(function () {
+    Route::post('/initialize-payment', [PaymentController::class, 'initializePayment'])->name('pay.initialize');
+    Route::put('/subscriptions/add-child/{subscription}/{child}', [SubscriptionController::class, 'addChildToSubscription'])->whereNumber('subscription');
+    Route::get('/subscriptions/list', [SubscriptionController::class, 'listUserSubscriptions']); //? order matters
+    Route::get('/subscriptions/{subscription}', [SubscriptionController::class, 'getSubscriptionDetails'])->whereNumber('subscription');
+});
+Route::get('/get-subscription-types', [PaymentController::class, 'showPaymentForm'])->name('subscription.types'); //! for debugging, remove later፣ including the controller method 
 
 
 Route::post('/subscriptions/create', [SubscriptionController::class, 'createSubscription'])->name('subscription.create');
