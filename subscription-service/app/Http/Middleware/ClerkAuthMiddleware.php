@@ -60,23 +60,30 @@ class ClerkAuthMiddleware
             // Note: decoded is an object by default in Firebase JWT
             $decoded = JWT::decode($token, new Key($pem, 'RS256'));
 
+            // Use an identifier that exists if sub is missing, or fail gracefully
+
+            if (!$decoded->sub) {
+                error_log("Token missing 'sub' claim. Available claims: " . json_encode($decoded));
+                throw new \Exception('Invalid token: Subject (sub) missing.');
+            }
+
+
             // 3. Map the decoded payload to a GenericUser
             // This allows you to use Auth::user() throughout the request
             Auth::setUser(new GenericUser([
                 'id' => $decoded->sub,
                 'email' => $decoded->email ?? null,
-                'name' => trim(($decoded->first_name ?? '') . ' ' . ($decoded->last_name ?? '')) ?: null,
+                'name' => trim(($decoded->name ?? '') . ' ' . ($decoded->last_name ?? '')) ?: null,
             ]));
 
             return $next($request);
-
         } catch (\Firebase\JWT\ExpiredException $e) {
             return response()->json([
                 'status' => 'error',
                 'error' => 'Token has expired'
             ], 401);
         } catch (\Exception $e) {
-            Cache::forget('clerk_public_key_pem');
+            // Cache::forget('clerk_public_key_pem'); //! should be uncommented for production, this line make the excution to get delayed
 
             return response()->json([
                 'status' => 'error',
