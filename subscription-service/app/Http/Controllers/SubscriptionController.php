@@ -33,7 +33,10 @@ class SubscriptionController extends Controller
         $transactionReference = $validatedData['trx_ref'];
         $status = $validatedData['status'];
 
-        if (Subscription::Where('tx_ref', $transactionReference)->first()) {
+        if (
+            Subscription::query()
+                ->Where('tx_ref', $transactionReference)->first()
+        ) {
             return response()->json([
                 'status' => 'failed',
                 'error' => 'Transaction already completed'
@@ -42,7 +45,7 @@ class SubscriptionController extends Controller
 
         // check if the transaction didn't exist in the database
         $verify = Chapa::verifyTransaction($transactionReference);
-
+        error_log('verifying transaction with chapa ' . print_r($verify, true));
         // 3. Comprehensive Validation of the Chapa API Response
         $validator = Validator::make($verify, [
             'status' => 'required|string|in:success',
@@ -225,7 +228,7 @@ class SubscriptionController extends Controller
             }
 
             //? Decrement the available slots in the subscription
-            $subscription->decrement('available_slots');
+            $subscription->decrement('available_slots', 1);
             return response()->json([
                 'status' => 'success',
                 'message' => 'Child added to subscription successfully'
@@ -239,9 +242,17 @@ class SubscriptionController extends Controller
         }
     }
 
-    public function getSubscriptionDetails(Subscription $subscription)
+    public function getSubscriptionDetails(string $subscription_id)
     {
-        if ($subscription->owner_id != Auth::id()) {
+        
+        $subscription = Subscription::query()->find($subscription_id);
+        if (!$subscription) {
+            return response()->json([
+                'status' => 'failed',
+                'error' => 'Subscription not found'
+            ], 404);
+        }
+        if ($subscription->owner_id != Auth::id()) {// TODO: good to change the error msg for security purpose.
             return response()->json([
                 'status' => 'failed',
                 'error' => 'Unauthorized'
@@ -258,14 +269,17 @@ class SubscriptionController extends Controller
     public function listUserSubscriptions()
     {
         // Retrieve all subscriptions for the authenticated user
-        $subscriptions = Subscription::where('owner_id', Auth::id())
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
+        error_log('usr id: '.Auth::id());
+        $subscriptions = Subscription::query()
+        ->where('owner_id', Auth::id())
+        ->orderBy('created_at', 'desc')
+        ->limit(5)
+        ->get();
+
 
         return response()->json([
-            'status'=> 'success',
-            'data'=> [
+            'status' => 'success',
+            'data' => [
                 'subscriptions' => $subscriptions
             ]
         ], 200);
