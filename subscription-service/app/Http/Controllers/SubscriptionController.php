@@ -210,6 +210,10 @@ class SubscriptionController extends Controller
                 'status' => 'failed',
                 'error' => 'Child is already associated with an active subscription'
             ], 400);
+        } else if ($subscriptionOfChild->ends_at->isFuture()) {
+            $subscriptionOfChild->update([
+                'available_slots' => $subscriptionOfChild->available_slots + 1, //? we increment the available slots of the old subscription to reflect that the child is no longer associated with it
+            ]);
         }
 
 
@@ -244,7 +248,7 @@ class SubscriptionController extends Controller
 
     public function getSubscriptionDetails(string $subscription_id)
     {
-        
+
         $subscription = Subscription::query()->find($subscription_id);
         if (!$subscription) {
             return response()->json([
@@ -269,12 +273,12 @@ class SubscriptionController extends Controller
     public function listUserSubscriptions()
     {
         // Retrieve all subscriptions for the authenticated user
-        error_log('usr id: '.Auth::id());
+        error_log('usr id: ' . Auth::id());
         $subscriptions = Subscription::query()
-        ->where('owner_id', Auth::id())
-        ->orderBy('created_at', 'desc')
-        ->limit(5)
-        ->get();
+            ->where('owner_id', Auth::id())
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
 
 
         return response()->json([
