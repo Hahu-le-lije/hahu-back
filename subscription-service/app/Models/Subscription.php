@@ -25,23 +25,6 @@ class Subscription extends Model
         'ends_at' => 'datetime',
     ];
 
-    /**
-     * Relationship: A subscription belongs to an owner (User)
-     */
-    public function owner(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'owner_id');
-    }
-
-    /**
-     * Relationship: A subscription has MANY children.
-     * (One-to-Many)
-     */
-    // public function children(): HasMany
-    // {
-    //     return $this->hasMany(Child::class, 'subscription_id');
-    // }
-
     use HasFactory;
 
     
