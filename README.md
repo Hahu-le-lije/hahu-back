@@ -1,59 +1,165 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Sync Service
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sync Service is a Laravel backend that imports gameplay events from the Game Service and converts them into child-level literacy analytics.
 
-## About Laravel
+It keeps a local copy of learning events, maintains daily and weekly summaries, and exposes analytics endpoints for frontend and AI consumers.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## What It Does
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- Pulls gameplay events from the Game Service on a schedule.
+- Stores each event as a local `learning_event`.
+- Aggregates events into daily and weekly literacy summaries.
+- Calculates accuracy, consistency, skill diversity, and mastery score.
+- Generates short human-readable explanations for literacy progress.
+- Exposes API endpoints for frontend dashboards and AI feature export.
+- Protects selected service-to-service endpoints with JWT authentication.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Core Flow
 
-## Learning Laravel
+1. Laravel scheduler runs `sync:game-events` every minute.
+2. `GameServiceClient` requests new or updated events from the Game Service.
+3. Events are upserted into the `learning_events` table by external `event_id`.
+4. Each synced event dispatches `ProcessLearningEventJob`.
+5. The job updates daily and weekly summaries for the child.
+6. API consumers fetch the latest analytics summaries or AI export data.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Main Concepts
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Learning Events
 
-## Laravel Sponsors
+Learning events are raw gameplay records imported from the Game Service. They include:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- child ID
+- game type
+- content ID
+- score
+- time spent
+- metrics such as total questions and correct answers
+- skill breakdown
+- original event timestamp
+- sync timestamp
 
-### Premium Partners
+### Daily Summaries
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Daily summaries aggregate a child's activity for a single date. They track total sessions, questions, correct answers, accuracy, time spent, consistency, skill diversity, mastery score, and an explanation.
 
-## Contributing
+### Weekly Summaries
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Weekly summaries aggregate the same analytics over a week. The service currently uses Carbon's `startOfWeek()` and `endOfWeek()` behavior for week boundaries.
 
-## Code of Conduct
+### AI Feature Snapshot
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+The AI snapshot endpoint summarizes the latest daily records into a compact feature set, including average accuracy, average mastery score, trend values, consistency, skill diversity, and learning stability.
 
-## Security Vulnerabilities
+## Tech Stack
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+- PHP 8.2+
+- Laravel 12
+- Laravel Queue
+- Laravel Scheduler
+- SQLite by default for local development
+- Firebase PHP-JWT for service-to-service JWTs
+- Vite/Tailwind scaffold from the Laravel starter
 
-## License
+## Important Files
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+- `routes/api.php` - public and protected API routes
+- `routes/console.php` - scheduled sync command
+- `app/Console/Commands/PullGameEvents.php` - imports events from Game Service
+- `app/Integrations/GameService/GameServiceClient.php` - Game Service HTTP client
+- `app/Jobs/ProcessLearningEventJob.php` - queued aggregation job
+- `app/Services/SummaryAggregationService.php` - daily and weekly aggregation logic
+- `app/Analytics/LiteracyAnalyticsService.php` - analytics formulas
+- `app/Services/ExplanationGeneratorService.php` - summary explanation text
+- `app/Services/ServiceJwtService.php` - service JWT generation and validation
+- `app/Http/Middleware/VerifyServiceJwt.php` - protected route middleware
+- `docs/API.md` - frontend-facing API reference
+
+## Environment
+
+Copy the example environment and set local values:
+
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+The service-specific values used by this app are:
+
+```env
+GAME_SERVICE_URL=
+GAME_SERVICE_TOKEN=
+
+SYNC_SERVICE_SECRET=
+GAME_SERVICE_SECRET=
+AI_SERVICE_SECRET=
+```
+
+`GAME_SERVICE_URL` and `GAME_SERVICE_TOKEN` are used when pulling events from the Game Service.
+
+`SYNC_SERVICE_SECRET`, `GAME_SERVICE_SECRET`, and `AI_SERVICE_SECRET` are used for service-to-service JWT validation.
+
+## Local Setup
+
+Install dependencies:
+
+```bash
+composer install
+npm install
+```
+
+Run migrations:
+
+```bash
+php artisan migrate
+```
+
+Start the development stack:
+
+```bash
+composer run dev
+```
+
+The `dev` script starts:
+
+- Laravel server
+- queue listener
+- Laravel Pail logs
+- Vite dev server
+
+## Running the Sync Manually
+
+```bash
+php artisan sync:game-events
+```
+
+The scheduled version is defined in `routes/console.php` and runs every minute when the Laravel scheduler is active.
+
+## Queues
+
+Synced events dispatch `ProcessLearningEventJob`, so the queue worker must be running for summaries to update asynchronously:
+
+```bash
+php artisan queue:listen --tries=1 --timeout=0
+```
+
+The default local queue connection is configured as `database`.
+
+## API Documentation
+
+Frontend developers should use:
+
+```text
+docs/API.md
+```
+
+It documents available endpoints, response shapes, error responses, and authentication expectations.
+
+## Current Notes
+
+- The summary formulas are intentionally simple and may evolve.
+- Consistency is currently stored as a placeholder value of `1.0` during aggregation.
+- Skill diversity is currently calculated from the event skill breakdown count divided by `10`.
+- The regular summary endpoints are currently unprotected.
+- The AI feature snapshot endpoint is protected by `service.jwt`.
+- Starter Laravel example tests are still present; service-specific tests should be added as the API stabilizes.
