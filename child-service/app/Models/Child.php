@@ -2,14 +2,13 @@
 
 namespace App\Models;
 
-namespace App\Models;
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
-class Child extends Model
+class Child extends Authenticatable
 {
-    use HasFactory;
+    use HasFactory, Notifiable;
 
     protected $fillable = [
         'parent_id',
@@ -18,24 +17,31 @@ class Child extends Model
         'username',
         'password',
         'avatar',
-        'birthdate'
+        'subscription_id',
+        'age',
+        'birthdate',
+        'skill_level',
+        'status',
+        'last_login_at',
+        'credentials_rotated_at',
     ];
 
     protected $hidden = [
         'password',
     ];
 
-    // 🔗 Relationships
-
-    public function parent()
+    protected function casts(): array
     {
-        return $this->belongsTo(ParentModel::class);
+        return [
+            'birthdate' => 'date',
+            'last_login_at' => 'datetime',
+            'credentials_rotated_at' => 'datetime',
+        ];
     }
 
-    // 🔐 Optional: automatically hash password
-    public function setPasswordAttribute($value)
+    public function setPasswordAttribute($value): void
     {
-        if (!empty($value)) {
+        if ($value !== null && $value !== '') {
             $this->attributes['password'] = bcrypt($value);
         }
     }

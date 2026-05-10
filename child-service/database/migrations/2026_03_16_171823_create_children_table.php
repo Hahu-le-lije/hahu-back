@@ -14,10 +14,8 @@ return new class extends Migration
         Schema::create('children', function (Blueprint $table) {
             $table->id();
 
-            // Foreign key to parents table
-            $table->foreignId('parent_id')
-                ->constrained()
-                ->cascadeOnDelete();
+            // External parent/household owner id from the parent service.
+            $table->string('parent_id')->index();
 
             $table->string('first_name');
             $table->string('last_name')->nullable();
@@ -30,6 +28,9 @@ return new class extends Migration
             $table->unsignedTinyInteger('age')->nullable();
             $table->date('birthdate')->nullable();
             $table->string('skill_level')->nullable();
+            $table->string('status')->default('active')->index();
+            $table->timestamp('last_login_at')->nullable();
+            $table->timestamp('credentials_rotated_at')->nullable();
 
             $table->timestamps();
         });
