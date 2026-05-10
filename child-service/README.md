@@ -29,6 +29,8 @@ Child credentials/JWT:
 
 When a parent creates a child, the service generates a unique username and PIN. The PIN is only returned in the create/reset response and is stored hashed.
 
+For request/response examples, validation rules, auth errors, and frontend implementation notes, see [docs/api.md](docs/api.md).
+
 ## Authentication
 
 This service uses stateless HS256 JWTs without owning parent accounts.
