@@ -1,14 +1,14 @@
 # Child Service
 
-This Laravel service owns child account creation and management for the literacy application.
+This Laravel service owns child account creation and management for Hahu La-Ləje.
 
-The broader product uses a family/household account model:
+Note that the broader product uses a family/household account model:
 
 - the parent service owns parent users, billing authority, and household administration
 - the subscription service owns purchased subscriptions and assignment rules
 - this child service owns child profiles, generated child login credentials, and child-scoped authentication
 
-Child accounts are intentionally limited. Children can log in and read their own profile, but they cannot edit their account, change billing, leave a household, or manage subscriptions.
+Child accounts are intentionally limited. Children can log in and read their own profile, but currently they cannot edit their account, change billing, leave a household, or manage subscriptions.
 
 ## API Shape
 
