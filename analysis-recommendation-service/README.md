@@ -1,58 +1,124 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Analysis & Recommendation Service API Documentation
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Overview
+This service provides AI-driven recommendations and learning health insights for parents regarding their children's progress. It operates as a Backend-for-Frontend (BFF), aggregating data from various microservices (Sync Service, User Service) to provide a unified dashboard experience.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Authentication & Authorization
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Clerk Authentication
+All requests must include a valid Clerk JWT in the `Authorization` header.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+*   **Header:** `Authorization: Bearer <clerk_jwt_token>`
+*   **Validation:** Tokens are validated against Clerk's JWKS.
 
-## Learning Laravel
+### Guardian Verification
+The service enforces strict ownership checks. An authenticated guardian can only access data for children they are explicitly authorized to manage. Unauthorized attempts will result in a `403 Forbidden` response.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+---
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## API Endpoints
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### 1. Get Latest Recommendation
+Retrieves the most recent AI-generated recommendation for a specific child.
 
-## Agentic Development
+- **URL:** `/api/parents/children/{childId}/recommendation`
+- **Method:** `GET`
+- **URL Params:** `childId=[string]`
+- **Success Response:**
+  - **Code:** `200 OK`
+  - **Content:**
+    ```json
+    {
+      "child_id": "c123",
+      "tier": "Premium",
+      "generated_at": "2026-05-13T10:00:00.000000Z",
+      "recommendation_text": "Focus on spatial reasoning exercises this week...",
+      "next_update_expected_at": "2026-05-20T10:00:00.000000Z"
+    }
+    ```
+- **Error Responses:**
+  - **Code:** `401 Unauthorized` (Invalid or missing token)
+  - **Code:** `403 Forbidden` (Guardian not authorized for this child)
+  - **Code:** `404 Not Found` (No recommendations generated yet)
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+---
 
-```bash
-composer require laravel/boost --dev
+### 2. Get Dashboard Status
+Retrieves a summary of learning metrics, including health score, time spent, and consistency.
 
-php artisan boost:install
-```
+- **URL:** `/api/parents/children/{childId}/dashboard-status`
+- **Method:** `GET`
+- **URL Params:** `childId=[string]`
+- **Success Response:**
+  - **Code:** `200 OK`
+  - **Content:**
+    ```json
+    {
+      "learning_health_score": "Excellent",
+      "time_spent_today_minutes": 45,
+      "weekly_accuracy": 0.85,
+      "consistency_status": "Highly Consistent"
+    }
+    ```
+- **Error Responses:**
+  - **Code:** `404 Not Found` (Not enough data to generate status)
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+---
 
-## Contributing
+### 3. Get Recommendation History
+Retrieves the history of past recommendations. 
+**Note:** This endpoint is restricted to users on a non-Basic subscription tier.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- **URL:** `/api/parents/children/{childId}/recommendation/history`
+- **Method:** `GET`
+- **URL Params:** `childId=[string]`
+- **Success Response:**
+  - **Code:** `200 OK`
+  - **Content:**
+    ```json
+    {
+      "history": [
+        {
+          "generated_at": "2026-05-13T10:00:00.000000Z",
+          "recommendation_text": "..."
+        },
+        {
+          "generated_at": "2026-05-06T10:00:00.000000Z",
+          "recommendation_text": "..."
+        }
+      ]
+    }
+    ```
+- **Error Responses:**
+  - **Code:** `403 Forbidden` (Access denied for 'Basic' tier)
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Response Codes Summary
 
-## Security Vulnerabilities
+| Status Code | Description |
+|:------------|:------------|
+| `200 OK` | The request was successful. |
+| `400 Bad Request` | Missing required parameters. |
+| `401 Unauthorized` | Invalid or missing authentication token. |
+| `403 Forbidden` | You do not have permission to access this resource or feature. |
+| `404 Not Found` | The requested resource or data could not be found. |
+| `500 Internal Server Error` | An unexpected error occurred on the server. |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
-## License
+## Local Development
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Prerequisites
+- PHP 8.2+
+- Composer
+- SQLite (or preferred database)
+
+### Setup
+1.  Clone the repository.
+2.  Install dependencies: `composer install`.
+3.  Copy `.env.example` to `.env` and configure your Clerk and Service keys.
+4.  Run migrations: `php artisan migrate`.
+5.  Start the server: `php artisan serve`.
