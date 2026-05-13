@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use App\Jobs\LinkChildSubscription;
 use App\Models\Subscription;
 use App\Services\SubscriptionManager;
-use App\Services\RabbitRpcClient;
+use App\Services\InternalUserService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
 use Exception;
@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Validator;
 class SubscriptionController extends Controller
 {
 
-    public function __construct(protected RabbitRpcClient $rpc)
+    public function __construct(protected InternalUserService $rpc)
     {
     }
 
@@ -211,6 +211,10 @@ class SubscriptionController extends Controller
                 'status' => 'failed',
                 'error' => 'Child is already associated with an active subscription'
             ], 400);
+        } else if ($subscriptionOfChild->ends_at->isFuture()) {
+            $subscriptionOfChild->update([
+                'available_slots' => $subscriptionOfChild->available_slots + 1, //? we increment the available slots of the old subscription to reflect that the child is no longer associated with it
+            ]);
         }
 
 
@@ -255,10 +259,10 @@ class SubscriptionController extends Controller
         // Retrieve all subscriptions for the authenticated user
         error_log('usr id: ' . Auth::id());
         $subscriptions = Subscription::query()
-            ->where('owner_id', Auth::id())
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
+                ->where('owner_id', Auth::id())
+                ->orderBy('created_at', 'desc')
+                ->limit(5)
+                ->get();
 
 
         return response()->json([

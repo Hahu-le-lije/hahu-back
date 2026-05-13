@@ -37,6 +37,9 @@ return [
     'clerk' => [
         'secret_key' => env('CLERK_SECRET_KEY'),
         'frontend_url' => env('FRONTEND_URL'),
-    ]
+    ],
+    'user_service' => [
+        'url' => env('USER_SERVICE_URL', env('APP_URL', 'http://localhost') . '/api/internal'),
+    ],
 
 ];
