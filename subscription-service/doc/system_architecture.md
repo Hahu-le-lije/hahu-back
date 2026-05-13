@@ -47,7 +47,7 @@ The system leverages asynchronous processing to handle cross-service side effect
 | Job Class | Trigger | Queue Driver | Queue Name | Intent |
 | :--- | :--- | :--- | :--- | :--- |
 | `ProcessActiveSubscriptions` | `DispatchDailySubscriptions` Command | `rabbitmq` | `ars_subscriptions_queue` | Pushes active subscription data to the ARS service for daily synchronization. |
-| `LinkChildSubscription` | Background Logic | `rabbitmq` | (Dynamic) | Pushes child-to-subscription linking updates to the User Service. |
+| `LinkChildSubscription` | Background Logic | `rabbitmq` | `subscription_to_user` | Pushes child-to-subscription linking updates to the User Service. |
 
 ---
 
