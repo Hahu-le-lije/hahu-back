@@ -214,7 +214,7 @@ class SubscriptionController extends Controller
 
         // Wrap the updates in a database transaction to prevent data corruption 
         // if one of the queries fails.
-        LinkChildSubscription::dispatch($child_id, $subscription->id)->onQueue('subscription.to.user');
+        LinkChildSubscription::dispatch($child_id, $subscription->id)->onQueue('subscription_to_user');
 
         //? Decrement the available slots in the subscription
         $subscription->decrement('available_slots', 1);
