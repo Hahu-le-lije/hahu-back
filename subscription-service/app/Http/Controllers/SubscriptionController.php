@@ -106,10 +106,7 @@ class SubscriptionController extends Controller
         try {
             $res = Cache::remember('user_' . $userId, now()->addMinutes(30), function () use ($userId) {
                 error_log("Cache didn't store user info with id: {$userId}");
-                return $this->rpc->call(
-                    'subscription.to.user',
-                    ['action' => 'get_parent', 'parent_id' => $userId]
-                );
+                return $this->rpc->getParent($userId);
             }, );
 
             if (!$res || $res['status'] !== 'success') {
@@ -151,10 +148,7 @@ class SubscriptionController extends Controller
 
         try {
             $res = Cache::remember('child_' . $child_id, now()->addMinutes(30), function () use ($child_id) {
-                return $this->rpc->call(
-                    'subscription.to.user',
-                    ['action' => 'get_child', 'child_id' => $child_id]
-                );
+                return $this->rpc->getChild($child_id);
             });
 
         } catch (Exception $th) {
