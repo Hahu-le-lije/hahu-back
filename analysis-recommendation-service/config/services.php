@@ -37,8 +37,23 @@ return [
     'clerk' => [
         'secret_key' => env('CLERK_SECRET_KEY')
     ],
+
+    'sync' => [
+        'url' => env('SYNC_SERVICE_URL', 'http://localhost:8000'),
+        'secret_token' => env('SYNC_SERVICE_SECRET_TOKEN'),
+    ],
+
+    'child_service' => [
+        'url' => env('CHILD_SERVICE_URL', 'http://child-service'),
+        'secret_token' => env('CHILD_SERVICE_SECRET_TOKEN'),
+    ],
+
+    'user_service' => [
+        'url' => env('USER_SERVICE_URL', 'http://user-service'),
+    ],
+
     'service_auth' => [
-        'recommendation-service' => env('RECOMMENDATION_SERVICE_SECRET'),  
+        'recommendation-service' => env('RECOMMENDATION_SERVICE_SECRET'),
     ],
 
 ];

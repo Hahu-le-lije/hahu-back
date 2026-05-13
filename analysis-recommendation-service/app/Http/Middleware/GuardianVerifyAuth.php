@@ -38,13 +38,8 @@ class GuardianVerifyAuth
             $actualParentId = Cache::get($cacheKey);
         } else {
             // 2. If not cached, fetch the child profile using the provided JWT
-            $token = $request->bearerToken();
 
-            if (!$token) {
-                return response()->json(['message' => 'Missing bearer token.'], 401);
-            }
-
-            $childProfile = $this->childService->getAuthenticatedChildProfile($token, $childId);
+            $childProfile = $this->childService->getAuthenticatedChildProfile($childId);
 
             if (!$childProfile || !isset($childProfile['id']) || !isset($childProfile['parent_id'])) {
                 return response()->json(['message' => 'Invalid child token or profile is unavailable.'], 401);
