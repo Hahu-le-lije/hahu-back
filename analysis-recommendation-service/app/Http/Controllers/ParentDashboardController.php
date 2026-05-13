@@ -20,10 +20,6 @@ class ParentDashboardController extends Controller
 
     public function getLatestRecommendation(string $childId): JsonResponse
     {
-        $childInfo = $this->userService->getChildInfo($childId);
-        if (!$childInfo) {
-            return response()->json(['message' => 'Child not found.'], 404);
-        }
 
         // Use latest() which defaults to 'created_at'
         $recommendation = Recommendation::query()
@@ -46,10 +42,6 @@ class ParentDashboardController extends Controller
 
     public function getRecommendationHistory(string $childId): JsonResponse
     {
-        $childInfo = $this->userService->getChildInfo($childId);
-        if (!$childInfo) {
-            return response()->json(['message' => 'Child not found.'], 404);
-        }
 
         if (($childInfo['subscription_tier'] ?? 'Basic') === 'Basic') {
             return response()->json(['message' => 'Upgrade to view history.'], 403);

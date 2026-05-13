@@ -2,14 +2,16 @@
 
 namespace App\Jobs;
 
+use Date;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use App\Services\RabbitRpcClient;
+use App\Services\SyncServiceClient;
 use App\Services\AiRecommendationService;
 use App\Models\Recommendation;
+use App\Services\ChildServiceClient;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Log;
@@ -17,55 +19,93 @@ use Illuminate\Support\Facades\Log;
 class ProcessActiveSubscriptions implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
+    
+    
     public array $subscriptions;
 
     public function __construct(array $subscriptions)
     {
         $this->subscriptions = $subscriptions;
+        $this->queue = 'ars_subscriptions_queue'; 
+        
     }
 
     // Laravel automatically injects these services from the ARS container
-    public function handle(RabbitRpcClient $rpcClient, AiRecommendationService $ai)
+    public function handle(SyncServiceClient $sync, ChildServiceClient $childService, AiRecommendationService $ai)
     {
         foreach ($this->subscriptions as $sub) {
             $subscriptionId = $sub['subscription_id'];
             $tier = $sub['tier'];
-
+            $now = Carbon::now('Africa/Addis_Ababa');
             try {
-                // 1. RPC Call to CS to get children for this subscription
-                $csResponse = $rpcClient->call('cs_get_children_queue', ['subscription_id' => $subscriptionId]);
-                $childIds = $csResponse['child_ids'] ??[];
 
-                foreach ($childIds as $childId) {
-                    // 2. RPC Call to SyncS to get analytics
-                    $syncData = $rpcClient->call('syncs_get_analytics_queue', ['child_id' => $childId]);
+                $csResponse = $childService->getChildWithSubscription($subscriptionId);
 
-                    // Skip Gemini logic for Ultimate users with no daily activity to save API costs
-                    if ($tier === 'Ultimate' && empty($syncData['daily_summary'])) {
-                        $this->saveRecommendation($childId, $tier, "No activity today! We'll be ready when they log back in.");
+
+                foreach ($csResponse as [$childId, $childName]) {
+                    [$lastUpdate, $needsUpdate] = $this->recommendationNeeded($tier, $childId);
+                    if (!$needsUpdate) {
                         continue;
                     }
 
-                    // 3. Call Gemini using Laravel/AI wrapper
-                    $recommendationText = $ai->generateRecommendation($tier, $syncData);
+                    $overview = $sync->getAnalyticsOverview($childId);
 
-                    // 4. Save to Database
+                    if ($tier === 'Ultimate' && empty($overview['daily_summary'])) {
+                        $this->saveRecommendation($childId, $tier, "No activity today! We'll be ready for {$childName} when they log back in.");
+                        continue;
+                    }
+
+                    $snapshot = $sync->getFeatureSnapshot($childId);
+                    $sinceDate = $lastUpdate ? $lastUpdate->toIso8601String() : $now->copy()->subDays(14)->toIso8601String();
+                    $events = $sync->getRecentEvents($childId, $sinceDate);
+
+                    $data = [
+                        'daily' => json_encode($overview['daily_summary'] ?? []),
+                        'weekly' => json_encode($overview['weekly_summary'] ?? []),
+                        'snapshot' => json_encode($snapshot ?? []),
+                        'events' => json_encode($events['events'] ?? []),
+                        'child_name' => $childName
+                    ];
+
+                    $recommendationText = $ai->generateRecommendation($tier, $data);
                     $this->saveRecommendation($childId, $tier, $recommendationText);
                 }
 
             } catch (Exception $e) {
                 // Log and continue so one failing subscription doesn't crash the whole batch
                 Log::error("Failed processing subscription {$subscriptionId}: " . $e->getMessage());
-                continue; 
+                continue;
             }
         }
+    }
+
+    private function recommendationNeeded(string $tier, string $childId): array
+    {
+        $now = Carbon::now('Africa/Addis_Ababa');
+        // Use latest() to get the newest by created_at
+        $latestRecommendation = Recommendation::query()
+            ->where('child_id', $childId)
+            ->latest()
+            ->first();
+
+        $lastUpdate = $latestRecommendation?->created_at; // Use created_at instead
+
+
+        if ($tier === 'Ultimate' && (!$lastUpdate || $lastUpdate->diffInDays($now) >= 1)) {
+            return [$lastUpdate, true];
+        } elseif ($tier === 'Premium' && (!$lastUpdate || $lastUpdate->diffInDays($now) >= 3)) {
+            return [$lastUpdate, true];
+        } elseif ($tier === 'Basic' && (!$lastUpdate || $lastUpdate->diffInDays($now) >= 14)) {
+            return [$lastUpdate, true];
+        }
+
+        return [null, false];
     }
 
     private function saveRecommendation(string $childId, string $tier, string $text)
     {
         $now = Carbon::now('Africa/Addis_Ababa');
-        
+
         // Calculate when the next update should happen based on the tier
         $next = match ($tier) {
             'Ultimate' => $now->copy()->addDay(),
