@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Chapa;
 use App\Services\SubscriptionManager;
-use App\Services\RabbitRpcClient;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 

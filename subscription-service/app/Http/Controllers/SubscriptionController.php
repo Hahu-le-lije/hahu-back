@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Subscription;
 use App\Services\SubscriptionManager;
-use App\Services\RabbitRpcClient;
+use App\Services\InternalUserService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
 use Exception;
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Validator;
 class SubscriptionController extends Controller
 {
 
-    public function __construct(protected RabbitRpcClient $rpc)
+    public function __construct(protected InternalUserService $rpc)
     {
     }
 
@@ -220,6 +220,8 @@ class SubscriptionController extends Controller
         // Wrap the updates in a database transaction to prevent data corruption 
         // if one of the queries fails.
         try {
+            /* 
+            //! NEED YOUR ATTENTION, FROM GEMINI CLI
             $res = $this->rpc->call( //? linking the child to the subscriptoin service
                 'subscription.to.user',
                 ['action' => 'link_child_subscription', 'child_id' => $child_id, 'subscription_id' => $subscription->id]
@@ -230,6 +232,7 @@ class SubscriptionController extends Controller
                     'error' => 'Failed to link child to subscription'
                 ], 400);
             }
+            */
 
             //? Decrement the available slots in the subscription
             $subscription->decrement('available_slots', 1);
