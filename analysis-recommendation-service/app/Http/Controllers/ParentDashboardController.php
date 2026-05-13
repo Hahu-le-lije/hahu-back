@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Recommendation;
+use App\Services\ChildServiceClient;
 use App\Services\SyncServiceClient;
 use App\Services\UserServiceClient;
 use Illuminate\Http\JsonResponse;
@@ -10,12 +11,12 @@ use Illuminate\Http\JsonResponse;
 class ParentDashboardController extends Controller
 {
     protected SyncServiceClient $syncService;
-    protected UserServiceClient $userService;
+    protected ChildServiceClient $childService;
 
-    public function __construct(SyncServiceClient $syncService, UserServiceClient $userService)
+    public function __construct(SyncServiceClient $syncService, ChildServiceClient $childService)
     {
         $this->syncService = $syncService;
-        $this->userService = $userService;
+        $this->childService = $childService;
     }
 
     public function getLatestRecommendation(string $childId): JsonResponse
@@ -42,7 +43,7 @@ class ParentDashboardController extends Controller
 
     public function getRecommendationHistory(string $childId): JsonResponse
     {
-
+        $childInfo = $this->childService->getAuthenticatedChildProfile($childId);
         if (($childInfo['subscription_tier'] ?? 'Basic') === 'Basic') {
             return response()->json(['message' => 'Upgrade to view history.'], 403);
         }
