@@ -1,58 +1,133 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Hahu Lelije Subscription Service API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+This service manages payments and user subscriptions for the Hahu Lelije platform. It integrates with Chapa for payment processing and Clerk for authentication.
 
-## About Laravel
+## Authentication
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+All protected endpoints require a valid Clerk JWT passed in the `Authorization` header.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```http
+Authorization: Bearer <clerk_jwt_token>
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+---
 
-## Contributing
+## API Reference
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 1. Initialize Payment
+Starts a new payment transaction with Chapa.
 
-## Code of Conduct
+- **URL**: `/api/initialize-payment`
+- **Method**: `POST`
+- **Auth Required**: Yes
+- **Request Body**:
+  ```json
+  {
+    "plan_type": "premium",
+    "max_slots": 3
+  }
+  ```
+- **Success Response**:
+  - **Code**: 200 OK
+  - **Content**:
+    ```json
+    {
+      "status": "success",
+      "data": {
+        "checkout_url": "https://checkout.chapa.co/checkout/payment/..."
+      }
+    }
+    ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 2. Add Child to Subscription
+Associates a child with an active subscription slot.
 
-## Security Vulnerabilities
+- **URL**: `/api/subscriptions/add-child/{subscription_id}/{child_id}`
+- **Method**: `PUT`
+- **Auth Required**: Yes
+- **URL Params**:
+  - `subscription_id` (Integer): The ID of the subscription.
+  - `child_id` (String): The UUID/ID of the child from the User Service.
+- **Success Response**:
+  - **Code**: 200 OK
+  - **Content**:
+    ```json
+    {
+      "status": "success",
+      "message": "Child added to subscription successfully"
+    }
+    ```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 3. List User Subscriptions
+Retrieves the most recent subscriptions for the authenticated user.
 
-## License
+- **URL**: `/api/subscriptions/list`
+- **Method**: `GET`
+- **Auth Required**: Yes
+- **Success Response**:
+  - **Code**: 200 OK
+  - **Content**:
+    ```json
+    {
+      "status": "success",
+      "data": {
+        "subscriptions": [...]
+      }
+    }
+    ```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### 4. Get Subscription Details
+Retrieves details for a specific subscription.
+
+- **URL**: `/api/subscriptions/{subscription_id}`
+- **Method**: `GET`
+- **Auth Required**: Yes
+- **Success Response**:
+  - **Code**: 200 OK
+  - **Content**:
+    ```json
+    {
+      "status": "success",
+      "data": {
+        "subscription": {
+          "id": 1,
+          "plan_type": "premium",
+          "available_slots": 2,
+          ...
+        }
+      }
+    }
+    ```
+
+### 5. Create Subscription (Webhook)
+Internal callback endpoint used by Chapa to confirm payment and create the subscription.
+
+- **URL**: `/api/subscriptions/create`
+- **Method**: `POST`
+- **Auth Required**: No (Verified via Chapa signature/reference)
+- **Request Body**:
+  ```json
+  {
+    "trx_ref": "HahuSub_...",
+    "ref_id": "...",
+    "status": "success"
+  }
+  ```
+- **Success Response**:
+  - **Code**: 201 Created
+  - **Content**:
+    ```json
+    {
+      "status": "success",
+      "message": "Subscription created successfully",
+      "data": {
+        "subscription": { ... }
+      }
+    }
+    ```
+
+---
+
+## Technical Architecture
+
+For detailed information about the system flow, middleware, and background jobs, please refer to [doc/system_architecture.md](doc/system_architecture.md).
