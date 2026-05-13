@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use App\Services\RabbitRpcClient;
+use App\Services\InternalUserService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -12,8 +12,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(RabbitRpcClient::class, function ($app) {
-            return new RabbitRpcClient();
+        $this->app->singleton(InternalUserService::class, function ($app) {
+            return new InternalUserService();
         });
     }
 
