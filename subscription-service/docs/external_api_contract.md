@@ -17,14 +17,8 @@ Content-Type: application/json
 
 Retrieves basic information about a parent user to verify their existence and status.
 
-- **URL**: `/get-parent`
-- **Method**: `POST`
-- **Payload**:
-  ```json
-  {
-    "parent_id": "string|integer"
-  }
-  ```
+- **URL**: `/api/internal/get-parent/{parent_id}`
+- **Method**: `GET`
 - **Expected Success Response**:
   - **Code**: 200 OK
   - **Content**:
@@ -46,14 +40,8 @@ Retrieves basic information about a parent user to verify their existence and st
 
 Retrieves metadata for a specific child, including their current subscription status and parent association.
 
-- **URL**: `/get-child`
-- **Method**: `POST`
-- **Payload**:
-  ```json
-  {
-    "child_id": "string|integer"
-  }
-  ```
+- **URL**: `/api/internal/get-child/{child_id}`
+- **Method**: `GET`
 - **Expected Success Response**:
   - **Code**: 200 OK
   - **Content**:

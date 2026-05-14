@@ -104,17 +104,10 @@ class SubscriptionController extends Controller
         }
 
         try {
-            $res = Cache::remember('user_' . $userId, now()->addMinutes(30), function () use ($userId) {
+            Cache::remember('user_' . $userId, now()->addMinutes(30), function () use ($userId) {
                 error_log("Cache didn't store user info with id: {$userId}");
                 return $this->rpc->getParent($userId);
             }, );
-
-            if (!$res || $res['status'] !== 'success') {
-                return response()->json([
-                    'status' => 'failed',
-                    'error' => 'User not found'
-                ], 404);
-            }
         } catch (Exception $th) {
             return response()->json([
                 'status' => 'failed',
@@ -158,15 +151,10 @@ class SubscriptionController extends Controller
             ], 500);
         }
 
-        if (!$res || $res['status'] !== 'success') {
-            return response()->json([
-                'status' => 'failed',
-                'error' => 'Child not found'
-            ], 404);
-        }
 
+        $child = $res;
         // Validate the response structure
-        if (!isset($res['data']['subscription_id']) || !isset($res['data']['parent_id'])) {
+        if (!isset($child['subscription_id']) || !isset($child['parent_id'])) {
             return response()->json([
                 'status' => 'failed',
                 'error' => 'Invalid response data structure'
@@ -174,7 +162,6 @@ class SubscriptionController extends Controller
         }
 
 
-        $child = $res['data'];
 
         // Validate ownership
         if ($subscription->owner_id != Auth::id() || $child['parent_id'] != Auth::id()) {

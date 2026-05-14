@@ -7,43 +7,32 @@ use Exception;
 
 class InternalUserService
 {
-    protected string $baseUrl;
+    protected string $baseParentServiceUrl;
+    protected string $baseChildServiceUrl;
     protected string $authToken;
 
     public function __construct()
     {
-        $this->baseUrl = config('services.user_service.url');
+        $this->baseParentServiceUrl = config('services.parent_service.url');
+        $this->baseChildServiceUrl = config('services.child_service.url');
         $this->authToken = env('INTERNAL_SERVICE_TOKEN', '');
-    }
-
-    /**
-     * Mimics RabbitRpcClient::call signature for easier transition.
-     *
-     * @param string $queue
-     * @param array $payload
-     * @return array|null
-     * @throws Exception
-     */
-    public function call(string $queue, array $payload)
-    {
-        $action = $payload['action'] ?? null;
-
-        return match ($action) {
-            'get_parent' => $this->getParent($payload['parent_id']),
-            'get_child' => $this->getChild($payload['child_id']),
-            default => throw new Exception("Unknown action: {$action}"),
-        };
     }
 
     public function getParent($userId)
     {
-        $response = Http::withToken($this->authToken)->post("{$this->baseUrl}/get-parent", ['parent_id' => $userId]);
-        return $response->json();
+        $response = Http::withToken($this->authToken)->get("{$this->baseParentServiceUrl}/api/internal/get-parent/{$userId}");
+        if ($response->failed() || $response->json('status') !== 'success' || !isset($response->json()['data'])) {
+            throw new Exception("Failed to fetch parent data: " . $response->body());
+        }
+        return $response->json()['data'];
     }
 
     public function getChild($childId)
     {
-        $response = Http::withToken($this->authToken)->post("{$this->baseUrl}/get-child", ['child_id' => $childId]);
-        return $response->json();
+        $response = Http::withToken($this->authToken)->get("{$this->baseChildServiceUrl}/api/internal/get-child/{$childId}");
+        if ($response->failed() || $response->json('status') !== 'success' || !isset($response->json()['data'])) {
+            throw new Exception("Failed to fetch child data: " . $response->body());
+        }
+        return $response->json()['data'];
     }
 }
