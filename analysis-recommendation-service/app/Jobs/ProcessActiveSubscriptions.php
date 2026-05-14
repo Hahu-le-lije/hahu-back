@@ -19,15 +19,15 @@ use Illuminate\Support\Facades\Log;
 class ProcessActiveSubscriptions implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-    
-    
+
+
     public array $subscriptions;
 
     public function __construct(array $subscriptions)
     {
         $this->subscriptions = $subscriptions;
-        $this->queue = 'ars_subscriptions_queue'; 
-        
+        $this->queue = 'ars_subscriptions_queue';
+
     }
 
     // Laravel automatically injects these services from the ARS container
@@ -42,7 +42,9 @@ class ProcessActiveSubscriptions implements ShouldQueue
                 $csResponse = $childService->getChildWithSubscription($subscriptionId);
 
 
-                foreach ($csResponse as [$childId, $childName]) {
+                foreach ($csResponse as $child) {
+                    $childId = $child['child_id'];
+                    $childName = $child['child_name'];
                     [$lastUpdate, $needsUpdate] = $this->recommendationNeeded($tier, $childId);
                     if (!$needsUpdate) {
                         continue;

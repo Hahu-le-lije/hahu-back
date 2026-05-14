@@ -20,14 +20,28 @@ class ChildServiceClient
     /**
      * Gets the authenticated child profile using the forwarded Bearer token.
      * Endpoint: GET /api/server/children/{childId}
+     * the structure is going to be like this:
+     * {
+     *  "status": "success",
+     *   "data": {
+     *     "id": "123",
+     *    "parent_id": "parent_id_123"
+     *   }
+     * }
      */
     public function getAuthenticatedChildProfile(string $childId): ?array
     {
-        $response = Http::withToken($this->childServiceToken)->get("{$this->baseUrl}/api/server/children/{$childId}");
+        $response = Http::withToken($this->childServiceToken)->get("{$this->baseUrl}/api/internal/children/{$childId}");
 
         if ($response->successful()) {
-            return $response->json();
+            $data = $response->json();
+            if (isset($data['status']) && $data['status'] === 'success' && isset($data['data'])) {
+                return $data['data']; // Return the child profile
+            }
+
         }
+
+        throw new \Exception("Failed to fetch child profile for child ID: {$childId}. Status: {$response->status()}");
 
         return null; // Token is missing, invalid, or child is unavailable
     }
@@ -37,25 +51,27 @@ class ChildServiceClient
      * @param string $subscriptionId
      * @return array|null Returns child details along with subscription info, or null if not found
      * the structure is going to be like this:
-     * [
-     *     [
-     *      'child_id' => '123',
-     *      'child_name' => 'John Doe',
-     *     ],
-     *     [
-     *      'child_id' => '123',
-     *      'child_name' => 'John Doe',
-     *     ],
-     * ]
+     *{
+     *    "status": "success",
+     *     "data": [
+     *       {
+     *         "child_id": "123",
+     *         "child_name": "John Doe"
+     *       }
+     *     ]
+     *   }
      */
     public function getChildWithSubscription(string $subscriptionId): ?array
     {
-        $response = Http::get("{$this->baseUrl}/api/server/subscriptions/children/{$subscriptionId}");
+        $response = Http::get("{$this->baseUrl}/api/internal/subscriptions/children/{$subscriptionId}");
 
         if ($response->successful()) {
-            return $response->json();
+            $data = $response->json();
+            if (isset($data['status']) && $data['status'] === 'success' && isset($data['data'])) {
+                return $data['data']; // Return the array of child details
+            }
         }
 
-        return null; // Child not found or service error
+        throw new \Exception("Failed to fetch child with subscription ID: {$subscriptionId}. Status: {$response->status()}");
     }
 }

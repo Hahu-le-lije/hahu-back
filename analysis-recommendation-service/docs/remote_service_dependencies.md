@@ -59,53 +59,45 @@ Retrieves granular event logs since a specific date.
 
 ---
 
-## 2. User Service
+## 2. Child Service
 
-The User Service provides child metadata and system-wide status.
-
-### Child Metadata
-
-- **Endpoint:** `GET /api/children/{childId}`
-- **Expected Response:**
-    ```json
-    // writen as the child-service api
-    ```
-
----
-
-## 3. Child Service
-
-Used primarily for ownership verification and subscription linking.
+Used for child metadata retrieval, ownership verification, and subscription linking.
 
 ### Child Profile Verification
 
-- **Endpoint:** `GET /api/server/children/{childId}`
-- **Auth:** Forwarded Server Bearer Token
+- **Endpoint:** `GET /api/internal/children/{childId}`
+- **Auth:** Service Bearer Token
 - **Expected Response:**
     ```json
     {
-        "id": "c123",
-        "parent_id": "p987"
+        "status": "success",
+        "data": {
+            "id": "123",
+            "parent_id": "parent_id_123"
+        }
     }
     ```
 
 ### Subscription Linking
 
-- **Endpoint:** `GET /api/server/subscriptions/children/{childId}`
-- **Auth:** Forwarded Server Bearer Token
+- **Endpoint:** `GET /api/internal/subscriptions/children/{subscriptionId}`
+- **Auth:** Service Bearer Token
 - **Expected Response:**
     ```json
-    [
-        {
-            "id": "c123",
-            "parent_id": "p987"
-        }
-    ]
+    {
+        "status": "success",
+        "data": [
+            {
+                "child_id": "123",
+                "child_name": "John Doe"
+            }
+        ]
+    }
     ```
 
 ---
 
-## 4. External Dependencies
+## 3. External Dependencies
 
 ### Clerk API
 
