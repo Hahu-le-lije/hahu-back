@@ -34,8 +34,7 @@ class ContentPack extends Model
     public function latestPublishedVersion(): HasOne
     {
         return $this->hasOne(ContentPackVersion::class)
-            ->ofMany('version', 'max', function ($query) {
-                $query->whereNotNull('published_at');
-            });
+            ->whereNotNull('published_at')
+            ->latestOfMany('published_at');
     }
 }
