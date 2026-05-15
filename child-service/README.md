@@ -31,6 +31,8 @@ When a parent creates a child, the service generates a unique username and PIN. 
 
 For request/response examples, validation rules, auth errors, and frontend implementation notes, see [docs/api.md](docs/api.md).
 
+For table definitions, indexes, ownership notes, and operational schema details, see [docs/database-schema.md](docs/database-schema.md).
+
 ## Authentication
 
 This service uses stateless HS256 JWTs without owning parent accounts.
