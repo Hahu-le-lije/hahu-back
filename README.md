@@ -74,6 +74,7 @@ The AI snapshot endpoint summarizes the latest daily records into a compact feat
 - `app/Services/ServiceJwtService.php` - service JWT generation and validation
 - `app/Http/Middleware/VerifyServiceJwt.php` - protected route middleware
 - `docs/API.md` - frontend-facing API reference
+- `docs/DATABASE.md` - database schema reference
 
 ## Environment
 
