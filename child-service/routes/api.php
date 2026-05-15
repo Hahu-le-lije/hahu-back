@@ -24,7 +24,7 @@ Route::prefix('children')->group(function () {
 | Parent-owned Child Account Management
 |--------------------------------------------------------------------------
 */
-Route::prefix('parents')->middleware('jwt.parent')->group(function () {
+Route::prefix('parents')->middleware('clerk.parent')->group(function () {
     Route::apiResource('children', ChildController::class);
     Route::post('/children/{child}/credentials', [ChildController::class, 'resetCredentials']);
 });

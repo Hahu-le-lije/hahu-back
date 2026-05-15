@@ -35,12 +35,11 @@ For table definitions, indexes, ownership notes, and operational schema details,
 
 ## Authentication
 
-This service uses stateless HS256 JWTs without owning parent accounts.
+This service verifies Clerk session tokens for parent-owned routes and issues its own stateless HS256 JWTs for child sessions.
 
-Expected parent token claims:
+Expected Clerk parent token claim:
 
-- `sub` or `parent_id`: external parent id from the parent service
-- `role`: `parent`
+- `sub`: Clerk user id for the parent
 
 Issued child token claims:
 
@@ -52,8 +51,10 @@ Issued child token claims:
 Configure secrets with:
 
 ```env
-PARENT_SERVICE_JWT_SECRET=
 CHILD_SERVICE_JWT_SECRET=
+CLERK_JWT_KEY=
+CLERK_ISSUER=
+CLERK_AUTHORIZED_PARTIES=
 CHILD_TOKEN_TTL_MINUTES=120
 CHILD_TOKEN_AUDIENCE=child-service
 CHILD_PIN_LENGTH=6

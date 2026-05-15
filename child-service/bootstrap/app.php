@@ -13,7 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'jwt.parent' => \App\Http\Middleware\AuthenticateParentJwt::class,
+            'clerk.parent' => \App\Http\Middleware\AuthenticateClerkParent::class,
             'jwt.child' => \App\Http\Middleware\AuthenticateChildJwt::class,
         ]);
     })
