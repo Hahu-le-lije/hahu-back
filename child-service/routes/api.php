@@ -3,6 +3,7 @@
 use App\Http\Controllers\ChildAuthController;
 use App\Http\Controllers\ChildController;
 use App\Http\Controllers\ChildProfileController;
+use App\Http\Controllers\SubscriptionAssignmentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -28,3 +29,14 @@ Route::prefix('parents')->middleware('clerk.parent')->group(function () {
     Route::apiResource('children', ChildController::class);
     Route::post('/children/{child}/credentials', [ChildController::class, 'resetCredentials']);
 });
+
+/*
+|--------------------------------------------------------------------------
+| Internal Subscription Service Integration
+|--------------------------------------------------------------------------
+*/
+Route::prefix('internal/subscriptions')
+    ->middleware('subscription.service')
+    ->group(function () {
+        Route::post('/assign-child', [SubscriptionAssignmentController::class, 'store']);
+    });

@@ -77,6 +77,7 @@ Nullable fields may be returned as `null`. Date and datetime values are serializ
 | `PUT/PATCH` | `/api/parents/children/{child}` | Parent JWT | Update one owned child. |
 | `DELETE` | `/api/parents/children/{child}` | Parent JWT | Delete one owned child. |
 | `POST` | `/api/parents/children/{child}/credentials` | Parent JWT | Rotate a child's PIN. |
+| `POST` | `/api/internal/subscriptions/assign-child` | Subscription service token | Queue subscription assignment for a child. |
 
 ## Child Auth Endpoints
 
@@ -416,6 +417,51 @@ Laravel validation errors use the standard shape:
 }
 ```
 
+## Internal Subscription Service Endpoint
+
+### `POST /api/internal/subscriptions/assign-child`
+
+Queues a job that assigns an external subscription id to a child account.
+
+Auth: bearer token matching `SUBSCRIPTION_SERVICE_TOKEN`.
+
+Request body:
+
+| Field | Type | Required | Rules |
+| --- | --- | --- | --- |
+| `child_id` | integer | Yes | Minimum 1. |
+| `subscription_id` | string | Yes | Max 100 characters. |
+
+Example request:
+
+```json
+{
+  "child_id": 1,
+  "subscription_id": "sub_123"
+}
+```
+
+Success response: `202 Accepted`
+
+```json
+{
+  "message": "Subscription assignment queued."
+}
+```
+
+The queued `AssignSubscriptionToChild` job writes `subscription_id` on the
+matching row in `children`. If the child cannot be found when the job runs,
+Laravel retries the job according to queue worker settings and then records it
+as failed.
+
+Common errors:
+
+| Status | Body | Meaning |
+| --- | --- | --- |
+| `401` | `{ "message": "Invalid subscription service token." }` | Missing or incorrect bearer token. |
+| `503` | `{ "message": "Subscription service token is not configured." }` | `SUBSCRIPTION_SERVICE_TOKEN` is not set. |
+| `422` | Laravel validation error object | Request body failed validation. |
+
 ## Frontend Implementation Notes
 
 - Store parent tokens separately from child tokens if the app supports both roles in one browser session.
@@ -424,4 +470,3 @@ Laravel validation errors use the standard shape:
 - Use `404` on parent child-detail routes as "not found or not yours"; the API intentionally does not reveal ownership.
 - Use `status: "suspended"` when a parent needs to disable a child account without deleting it.
 - Do not expect pagination on `GET /api/parents/children`; the endpoint currently returns the full owned list.
-

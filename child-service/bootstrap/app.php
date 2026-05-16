@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'clerk.parent' => \App\Http\Middleware\AuthenticateClerkParent::class,
             'jwt.child' => \App\Http\Middleware\AuthenticateChildJwt::class,
+            'subscription.service' => \App\Http\Middleware\AuthenticateSubscriptionService::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
