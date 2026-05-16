@@ -115,7 +115,7 @@ class TaskRecommendationController extends Controller
             'assigned_at' => now(),
             'reason' => $validated['reason'] ?? null,
         ]);
-        return response()->json(['success' => true, 'assigned_task' => $task]);
+        return response()->json(['success' => true, 'assigned_task' => $task], 201);
     }
 
     private function gameTypeId($gameType): int

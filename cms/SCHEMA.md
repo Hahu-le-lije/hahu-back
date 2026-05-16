@@ -151,6 +151,41 @@ AUTHENTICATION          CONTENT              INFRASTRUCTURE
 
 ---
 
+### child_subjects
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | bigint | PK, AUTO_INCREMENT |
+| child_id | varchar(255) | NOT NULL, indexed |
+| game_type_id | integer | NOT NULL |
+| game_type_name | varchar(255) | NOT NULL |
+| status | boolean | DEFAULT true |
+| created_at | timestamp | DEFAULT NOW() |
+| updated_at | timestamp | DEFAULT NOW() |
+
+**Constraints**: UNIQUE(`child_id`, `game_type_id`)
+
+---
+
+### assigned_tasks
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | bigint | PK, AUTO_INCREMENT |
+| child_id | varchar(255) | NOT NULL, indexed |
+| content_id | bigint | FK → content.id (CASCADE on delete) |
+| game_type_id | integer | NOT NULL |
+| status | varchar(50) | DEFAULT 'assigned' |
+| assigned_by | bigint | nullable, indexed (user id who assigned) |
+| assigned_at | timestamp | nullable |
+| completed_at | timestamp | nullable |
+| reason | text | nullable |
+| created_at | timestamp | DEFAULT NOW() |
+| updated_at | timestamp | DEFAULT NOW() |
+
+**Indexes**: `child_id`, `assigned_by`
+
+
+---
+
 ### cache
 | Column | Type | Constraints |
 |--------|------|-------------|
@@ -262,6 +297,8 @@ All 10 migrations have been successfully created:
 8. add_role_to_users_table (add role column)
 9. create_personal_access_tokens_table (personal_access_tokens)
 10. create_content_table (content) ← NEW
+11. create_child_subjects_table (child_subjects) ← NEW
+12. create_assigned_tasks_table (assigned_tasks) ← NEW
 
 ---
 

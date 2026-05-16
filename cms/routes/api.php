@@ -5,6 +5,7 @@ use App\Http\Controllers\ContentPackController;
 use App\Http\Controllers\ContentPackVersionController;
 use App\Http\Controllers\ParentController;
 use App\Http\Controllers\SubjectController;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('parents')->group(function () {
@@ -39,8 +40,10 @@ Route::prefix('subjects')->group(function () {
 
 // Task recommendations and assignment endpoints
 Route::prefix('children')->group(function () {
-    Route::get('{child_id}/tasks/recommendations', [\App\Http\Controllers\TaskRecommendationController::class, 'recommendations']);
-    Route::post('{child_id}/tasks/assign', [\App\Http\Controllers\TaskRecommendationController::class, 'assign']);
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('{child_id}/tasks/recommendations', [\App\Http\Controllers\TaskRecommendationController::class, 'recommendations']);
+        Route::post('{child_id}/tasks/assign', [\App\Http\Controllers\TaskRecommendationController::class, 'assign']);
+    });
 });
 
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
@@ -54,4 +57,19 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::post('content-pack-versions', [ContentPackVersionController::class, 'store']);
     Route::put('content-pack-versions/{id}', [ContentPackVersionController::class, 'update']);
     Route::delete('content-pack-versions/{id}', [ContentPackVersionController::class, 'destroy']);
+
+    // Admin helper endpoints for children and assigned tasks
+    Route::get('children', function () {
+        $children = DB::table('assigned_tasks')->distinct()->pluck('child_id');
+        return response()->json(['children' => $children]);
+    });
+
+    Route::get('children/{child_id}/assigned-tasks', function ($childId) {
+        $tasks = \App\Models\AssignedTask::query()
+            ->where('child_id', $childId)
+            ->with('content')
+            ->orderByDesc('assigned_at')
+            ->get();
+        return response()->json(['assigned_tasks' => $tasks]);
+    });
 });
