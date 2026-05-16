@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ContentPack;
+use App\Support\ContentPayloadFormatter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -184,6 +185,8 @@ class ContentPackController extends Controller
             abort(404, 'No published version found for this content pack.');
         }
 
-        return response()->json($version->payload);
+        $payload = is_array($version->payload) ? $version->payload : [];
+
+        return response()->json(ContentPayloadFormatter::normalize($payload));
     }
 }

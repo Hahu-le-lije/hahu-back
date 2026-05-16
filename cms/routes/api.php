@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ContentPackController;
 use App\Http\Controllers\ContentPackVersionController;
 use App\Http\Controllers\ParentController;
+use App\Http\Controllers\SubjectController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('parents')->group(function () {
@@ -29,6 +30,17 @@ Route::prefix('content')->group(function () {
     Route::get('packs', [ContentPackController::class, 'index'])->name('content.packs.index');
     Route::get('packs/{slug}/manifest', [ContentPackController::class, 'manifest'])->name('content.packs.manifest');
     Route::get('packs/{slug}/download', [ContentPackController::class, 'download'])->name('content.packs.download');
+});
+
+Route::prefix('subjects')->group(function () {
+    Route::get('/', [SubjectController::class, 'index']);
+    Route::put('/', [SubjectController::class, 'update']);
+});
+
+// Task recommendations and assignment endpoints
+Route::prefix('children')->group(function () {
+    Route::get('{child_id}/tasks/recommendations', [\App\Http\Controllers\TaskRecommendationController::class, 'recommendations']);
+    Route::post('{child_id}/tasks/assign', [\App\Http\Controllers\TaskRecommendationController::class, 'assign']);
 });
 
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {

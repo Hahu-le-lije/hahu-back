@@ -38,7 +38,7 @@ class Content extends Model
      */
     public function contentPack()
     {
-        return $this->through('contentPackVersion')->has('contentPack');
+        return $this->contentPackVersion ? $this->contentPackVersion->contentPack : null;
     }
 
     /**

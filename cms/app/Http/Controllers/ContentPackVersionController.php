@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ContentPackVersion;
+use App\Support\ContentPayloadFormatter;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -31,6 +32,7 @@ class ContentPackVersionController extends Controller
             'min_app_version' => 'required|string',
             'published_at' => 'nullable|date',
         ]);
+        $validated['payload'] = ContentPayloadFormatter::normalize($validated['payload']);
         $version = ContentPackVersion::create($validated);
         return response()->json($version, 201);
     }
@@ -47,6 +49,9 @@ class ContentPackVersionController extends Controller
             'min_app_version' => 'sometimes|required|string',
             'published_at' => 'nullable|date',
         ]);
+        if (isset($validated['payload']) && is_array($validated['payload'])) {
+            $validated['payload'] = ContentPayloadFormatter::normalize($validated['payload']);
+        }
         $version->update($validated);
         return response()->json($version);
     }
