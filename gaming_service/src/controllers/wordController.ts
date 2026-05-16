@@ -17,7 +17,6 @@ export  const wordDetails=async(req:Request<{},{},WordRequest>,res:Response)=>{
         const {word,language}=req.body;
         if(!word){
             return res.status(400).json({error:"word is required"})
-            //might need to also add iss with child service to get sub type
         }
     const cacheKey=`word:${language.toLowerCase()}:${word.trim().toLowerCase()}`;
 
