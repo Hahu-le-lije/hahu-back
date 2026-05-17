@@ -9,14 +9,17 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-FROM php:8.4-cli AS vendor
+FROM php:8.2-cli AS vendor
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    perl \
-    dpkg-dev \
-    libzip-dev \
-    unzip
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    unzip curl git \
+    perl-base perl dpkg dpkg-dev libdpkg-perl \
+ && rm -rf /var/lib/apt/lists/*
+
+# install composer
+RUN curl -sS https://getcomposer.org/installer | php \
+ && mv composer.phar /usr/local/bin/composer
 
 RUN docker-php-ext-install sockets
 
