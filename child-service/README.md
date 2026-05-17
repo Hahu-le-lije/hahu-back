@@ -27,6 +27,13 @@ Child credentials/JWT:
 - `GET /api/children/me`
 - `POST /api/children/logout`
 
+Internal service token:
+
+- `GET /api/internal/children/{childId}`
+- `GET /api/internal/get-child/{childId}`
+- `GET /api/internal/subscriptions/children/{subscriptionId}`
+- `POST /api/internal/subscriptions/assign-child`
+
 When a parent creates a child, the service generates a unique username and PIN. The PIN is only returned in the create/reset response and is stored hashed.
 
 For request/response examples, validation rules, auth errors, and frontend implementation notes, see [docs/api.md](docs/api.md).
@@ -52,6 +59,8 @@ Configure secrets with:
 
 ```env
 CHILD_SERVICE_JWT_SECRET=
+INTERNAL_SERVICE_TOKEN=
+SUBSCRIPTION_SERVICE_TOKEN=
 CLERK_JWT_KEY=
 CLERK_ISSUER=
 CLERK_AUTHORIZED_PARTIES=
@@ -59,6 +68,8 @@ CHILD_TOKEN_TTL_MINUTES=120
 CHILD_TOKEN_AUDIENCE=child-service
 CHILD_PIN_LENGTH=6
 ```
+
+`INTERNAL_SERVICE_TOKEN` protects read-only service-to-service child lookup routes. `SUBSCRIPTION_SERVICE_TOKEN` protects subscription assignment writes and falls back to `INTERNAL_SERVICE_TOKEN` if it is not set.
 
 ## Local Checks
 

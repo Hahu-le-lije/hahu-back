@@ -10,6 +10,7 @@ return [
         'trim',
         explode(',', (string) env('CLERK_AUTHORIZED_PARTIES', ''))
     )),
-    'subscription_service_token' => env('SUBSCRIPTION_SERVICE_TOKEN'),
+    'internal_service_token' => env('INTERNAL_SERVICE_TOKEN', env('SUBSCRIPTION_SERVICE_TOKEN')),
+    'subscription_service_token' => env('SUBSCRIPTION_SERVICE_TOKEN', env('INTERNAL_SERVICE_TOKEN')),
     'pin_length' => (int) env('CHILD_PIN_LENGTH', 6),
 ];

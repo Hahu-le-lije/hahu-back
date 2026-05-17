@@ -3,6 +3,7 @@
 use App\Http\Controllers\ChildAuthController;
 use App\Http\Controllers\ChildController;
 use App\Http\Controllers\ChildProfileController;
+use App\Http\Controllers\InternalChildController;
 use App\Http\Controllers\SubscriptionAssignmentController;
 use Illuminate\Support\Facades\Route;
 
@@ -39,4 +40,17 @@ Route::prefix('internal/subscriptions')
     ->middleware('subscription.service')
     ->group(function () {
         Route::post('/assign-child', [SubscriptionAssignmentController::class, 'store']);
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Internal Child Service Integration
+|--------------------------------------------------------------------------
+*/
+Route::prefix('internal')
+    ->middleware('internal.service')
+    ->group(function () {
+        Route::get('/children/{childId}', [InternalChildController::class, 'show']);
+        Route::get('/get-child/{childId}', [InternalChildController::class, 'show']);
+        Route::get('/subscriptions/children/{subscriptionId}', [InternalChildController::class, 'childrenForSubscription']);
     });

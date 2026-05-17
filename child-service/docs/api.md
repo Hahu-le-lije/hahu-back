@@ -18,6 +18,7 @@ There are two token contexts:
 
 - Parent endpoints require a parent JWT issued by the parent service.
 - Child endpoints require either child login credentials or a child JWT issued by this service.
+- Internal service endpoints require shared service bearer tokens configured on this service.
 
 Parent JWTs must contain:
 
@@ -77,6 +78,9 @@ Nullable fields may be returned as `null`. Date and datetime values are serializ
 | `PUT/PATCH` | `/api/parents/children/{child}` | Parent JWT | Update one owned child. |
 | `DELETE` | `/api/parents/children/{child}` | Parent JWT | Delete one owned child. |
 | `POST` | `/api/parents/children/{child}/credentials` | Parent JWT | Rotate a child's PIN. |
+| `GET` | `/api/internal/children/{childId}` | Internal service token | Read child profile details for service-to-service integrations. |
+| `GET` | `/api/internal/get-child/{childId}` | Internal service token | Alias for child profile lookup, retained for subscription service compatibility. |
+| `GET` | `/api/internal/subscriptions/children/{subscriptionId}` | Internal service token | List children linked to an external subscription id. |
 | `POST` | `/api/internal/subscriptions/assign-child` | Subscription service token | Queue subscription assignment for a child. |
 
 ## Child Auth Endpoints
@@ -417,13 +421,106 @@ Laravel validation errors use the standard shape:
 }
 ```
 
+## Internal Service Endpoints
+
+Internal read endpoints are intended for other backend services such as CMS, Analysis, and Subscription Service. They are not browser/client endpoints.
+
+Auth: bearer token matching `INTERNAL_SERVICE_TOKEN`. If `INTERNAL_SERVICE_TOKEN` is not configured, the service falls back to `SUBSCRIPTION_SERVICE_TOKEN` for compatibility.
+
+Common errors:
+
+| Status | Body | Meaning |
+| --- | --- | --- |
+| `401` | `{ "message": "Invalid internal service token." }` | Missing or incorrect bearer token. |
+| `503` | `{ "message": "Internal service token is not configured." }` | No internal token is configured. |
+
+### `GET /api/internal/children/{childId}`
+
+Returns child profile details in the service-to-service envelope expected by CMS and Analysis Service.
+
+Path parameters:
+
+| Parameter | Type | Notes |
+| --- | --- | --- |
+| `childId` | integer or string | Child id. |
+
+Success response: `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "id": "1",
+    "child_id": "1",
+    "parent_id": "parent-123",
+    "first_name": "Lina",
+    "last_name": "Reader",
+    "child_name": "Lina Reader",
+    "username": "lina_reader_a1b2c",
+    "avatar": null,
+    "subscription_id": "sub_123",
+    "age": 8,
+    "birthdate": null,
+    "skill_level": "beginner",
+    "status": "active",
+    "last_login_at": null,
+    "credentials_rotated_at": "2026-05-10T10:30:00.000000Z",
+    "created_at": "2026-05-10T10:30:00.000000Z",
+    "updated_at": "2026-05-10T10:30:00.000000Z"
+  }
+}
+```
+
+The password hash is never returned.
+
+Not found response: `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Child not found."
+}
+```
+
+### `GET /api/internal/get-child/{childId}`
+
+Compatibility alias for `GET /api/internal/children/{childId}`. It returns the same response shape and is provided for services that already call `/api/internal/get-child/{childId}`.
+
+### `GET /api/internal/subscriptions/children/{subscriptionId}`
+
+Lists child accounts currently linked to an external subscription id.
+
+Path parameters:
+
+| Parameter | Type | Notes |
+| --- | --- | --- |
+| `subscriptionId` | string | External subscription id stored on child records. |
+
+Success response: `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "child_id": "1",
+      "child_name": "Lina Reader",
+      "parent_id": "parent-123",
+      "status": "active"
+    }
+  ]
+}
+```
+
+If no children are linked to the subscription, `data` is an empty array.
+
 ## Internal Subscription Service Endpoint
 
 ### `POST /api/internal/subscriptions/assign-child`
 
 Queues a job that assigns an external subscription id to a child account.
 
-Auth: bearer token matching `SUBSCRIPTION_SERVICE_TOKEN`.
+Auth: bearer token matching `SUBSCRIPTION_SERVICE_TOKEN`. If `SUBSCRIPTION_SERVICE_TOKEN` is not configured, the service falls back to `INTERNAL_SERVICE_TOKEN` for compatibility.
 
 Request body:
 
