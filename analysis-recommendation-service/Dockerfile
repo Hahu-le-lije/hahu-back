@@ -1,64 +1,69 @@
-# Stage 1: Build assets
-FROM node:20-alpine AS assets-builder
+# syntax=docker/dockerfile:1
+
+FROM node:20-alpine AS assets
 WORKDIR /app
+
 COPY package*.json ./
 RUN npm install
+
 COPY . .
 RUN npm run build
 
-# Stage 2: PHP Application
-FROM php:8.3-fpm-alpine
+FROM composer:2 AS vendor
+WORKDIR /app
 
-# Set working directory
+COPY composer.json ./
+RUN composer install \
+    --no-interaction \
+    --prefer-dist
+
+COPY . .
+RUN composer run-script post-autoload-dump || true
+
+FROM php:8.3-apache-bookworm AS runtime
 WORKDIR /var/www/html
 
-# Install system dependencies
-RUN apk add --no-cache \
-    curl \
-    libpng-dev \
-    libxml2-dev \
-    zip \
-    unzip \
-    libpq-dev \
-    oniguruma-dev \
-    libzip-dev \
-    icu-dev \
-    linux-headers
+ENV APP_ENV=production \
+    APP_DEBUG=false \
+    LOG_CHANNEL=stderr \
+    PORT=8080
 
-# Install PHP extensions
-RUN docker-php-ext-install \
-    pdo_pgsql \
-    pgsql \
-    mbstring \
-    exif \
-    pcntl \
-    bcmath \
-    gd \
-    zip \
-    intl \
-    sockets
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libicu-dev \
+        libpng-dev \
+        libpq-dev \
+        libzip-dev \
+        unzip \
+    && docker-php-ext-install \
+        bcmath \
+        exif \
+        gd \
+        intl \
+        opcache \
+        pcntl \
+        pdo_pgsql \
+        pgsql \
+        sockets \
+        zip \
+    && a2enmod headers rewrite \
+    && sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf \
+    && printf '%s\n' \
+        '<Directory /var/www/html/public>' \
+        '    AllowOverride All' \
+        '    Require all granted' \
+        '</Directory>' > /etc/apache2/conf-available/laravel.conf \
+    && a2enconf laravel \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=vendor /app ./
+COPY --from=assets /app/public/build ./public/build
+COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint
 
-# Copy project files
-COPY . .
+RUN chown -R www-data:www-data storage bootstrap/cache \
+    && chmod +x /usr/local/bin/docker-entrypoint
 
-# Copy built assets from Stage 1
-COPY --from=assets-builder /app/public/build ./public/build
+EXPOSE 8080
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
-
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-
-# Expose port 9000
-EXPOSE 9000
-
-# Entrypoint script
-COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
-
-ENTRYPOINT ["entrypoint.sh"]
-CMD ["php-fpm"]
+ENTRYPOINT ["docker-entrypoint"]
+CMD ["apache2-foreground"]

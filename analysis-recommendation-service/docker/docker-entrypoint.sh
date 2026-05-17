@@ -22,11 +22,9 @@ php artisan event:cache --no-interaction
 
 php artisan config:clear --no-interaction
 
-# 4. Run Database Migrations (Optional)
-# Uncomment the line below if you want the container to automatically run migrations when it starts.
-# Note: The '--force' flag is required in production so it doesn't ask for user confirmation.
-# echo "Running migrations..."
-# php artisan migrate --force
+if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
+    echo "Running migrations..."
+    php artisan migrate --force --no-interaction
+fi
 
-# 5. Start the main container process (usually Apache)
 exec "$@"

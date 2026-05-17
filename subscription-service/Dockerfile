@@ -1,58 +1,77 @@
-# Stage 1: Build assets
-FROM node:20-alpine AS assets-builder
+# syntax=docker/dockerfile:1
+
+FROM node:20-alpine AS assets
 WORKDIR /app
+
 COPY package*.json ./
 RUN npm install
+
 COPY . .
 RUN npm run build
 
-# Stage 2: PHP Application
-FROM php:8.3-fpm-alpine
+FROM composer:2 AS vendor
+WORKDIR /app
 
-# Set working directory
-WORKDIR /var/www
+RUN docker-php-ext-install sockets
 
-# Install system dependencies
-RUN apk add --no-cache \
-    curl \
-    libpng-dev \
-    libxml2-dev \
-    zip \
-    unzip \
-    git \
-    oniguruma-dev \
-    libzip-dev \
-    freetype-dev \
-    libjpeg-turbo-dev \
-    icu-dev \
-    linux-headers \
-    postgresql-dev
-
-# Install PHP extensions
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo_pgsql pgsql mbstring exif pcntl bcmath gd zip intl sockets
-
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Copy composer files first for better caching
 COPY composer.json composer.lock ./
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --no-progress \
+    --no-scripts \
+    --prefer-dist \
+    --optimize-autoloader
 
-# Install dependencies without scripts to avoid issues during build
-RUN composer install --no-interaction --no-dev --no-scripts --optimize-autoloader
-
-# Copy the rest of the application
 COPY . .
-
-# Copy built assets from Stage 1
-COPY --from=assets-builder /app/public/build ./public/build
-
-# Run post-install scripts now that the app is copied
 RUN composer run-script post-autoload-dump
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+FROM php:8.3-apache-bookworm AS runtime
+WORKDIR /var/www/html
 
-# Expose port 9000 and start php-fpm server
-EXPOSE 9000
-CMD ["php-fpm"]
+ENV APP_ENV=production \
+    APP_DEBUG=false \
+    LOG_CHANNEL=stderr \
+    PORT=8080
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libicu-dev \
+        libjpeg62-turbo-dev \
+        libpng-dev \
+        libpq-dev \
+        libzip-dev \
+        unzip \
+    && docker-php-ext-configure gd --with-jpeg \
+    && docker-php-ext-install \
+        bcmath \
+        exif \
+        gd \
+        intl \
+        opcache \
+        pcntl \
+        pdo_pgsql \
+        pgsql \
+        sockets \
+        zip \
+    && a2enmod headers rewrite \
+    && sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf \
+    && printf '%s\n' \
+        '<Directory /var/www/html/public>' \
+        '    AllowOverride All' \
+        '    Require all granted' \
+        '</Directory>' > /etc/apache2/conf-available/laravel.conf \
+    && a2enconf laravel \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=vendor /app ./
+COPY --from=assets /app/public/build ./public/build
+COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint
+
+RUN chown -R www-data:www-data storage bootstrap/cache \
+    && chmod +x /usr/local/bin/docker-entrypoint
+
+EXPOSE 8080
+
+ENTRYPOINT ["docker-entrypoint"]
+CMD ["apache2-foreground"]

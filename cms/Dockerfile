@@ -32,6 +32,7 @@ ENV APP_ENV=production \
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+        curl \
         libicu-dev \
         libpq-dev \
         libzip-dev \

@@ -1,48 +1,264 @@
 version: '3.9'
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hahu-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: hahu
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: hahu
+      POSTGRES_MULTIPLE_DATABASES: cms,child,subscription,sync,analysis
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hahu -d hahu"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: hahu-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: hahu-rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
 
   child-service:
     build: "./child-service"
     container_name: child-service
     restart: always
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_KEY: ${CHILD_APP_KEY:-base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}
+      APP_URL: http://localhost/child
+      LOG_CHANNEL: stderr
+      RUN_MIGRATIONS: "true"
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: child
+      DB_USERNAME: hahu
+      DB_PASSWORD: secret
+      REDIS_HOST: redis
+      CACHE_STORE: database
+      SESSION_DRIVER: database
+      QUEUE_CONNECTION: database
+      CHILD_SERVICE_JWT_SECRET: ${CHILD_SERVICE_JWT_SECRET:-local-child-secret}
+      SUBSCRIPTION_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-local-internal-token}
+      CLERK_JWT_KEY: ${CLERK_JWT_KEY:-}
+      CLERK_ISSUER: ${CLERK_ISSUER:-}
+      CLERK_AUTHORIZED_PARTIES: ${CLERK_AUTHORIZED_PARTIES:-}
     expose:
       - "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   gaming-service:
     build: "./gaming-service"
     container_name: gaming-service
     restart: always
+    environment:
+      PORT: 8080
+      REDIS_URL: redis://redis:6379
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.0-flash}
+      HUG_FACE: ${HUG_FACE:-}
     expose:
       - "8080"
+    depends_on:
+      redis:
+        condition: service_healthy
 
   analysis-service:
     build: "./analysis-recommendation-service"
     container_name: analysis-service
     restart: always
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_KEY: ${ANALYSIS_APP_KEY:-base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}
+      APP_URL: http://localhost/analysis
+      LOG_CHANNEL: stderr
+      RUN_MIGRATIONS: "true"
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: analysis
+      DB_USERNAME: hahu
+      DB_PASSWORD: secret
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+      CACHE_STORE: database
+      SESSION_DRIVER: database
+      QUEUE_CONNECTION: database
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
+      SYNC_SERVICE_URL: http://sync-service:8080
+      CHILD_SERVICE_URL: http://child-service:8080
+      USER_SERVICE_URL: http://child-service:8080
+      SYNC_SERVICE_SECRET_TOKEN: ${SYNC_SERVICE_SECRET_TOKEN:-local-sync-secret}
+      RECOMMENDATION_SERVICE_SECRET: ${RECOMMENDATION_SERVICE_SECRET:-local-recommendation-secret}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     expose:
       - "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   sync-service:
     build: "./sync-service"
     container_name: sync-service
     restart: always
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_KEY: ${SYNC_APP_KEY:-base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}
+      APP_URL: http://localhost/sync
+      LOG_CHANNEL: stderr
+      RUN_MIGRATIONS: "true"
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: sync
+      DB_USERNAME: hahu
+      DB_PASSWORD: secret
+      REDIS_HOST: redis
+      CACHE_STORE: database
+      SESSION_DRIVER: database
+      QUEUE_CONNECTION: database
+      GAME_SERVICE_URL: http://gaming-service:8080
+      GAME_SERVICE_TOKEN: ${GAME_SERVICE_TOKEN:-local-game-token}
+      SYNC_SERVICE_SECRET: ${SYNC_SERVICE_SECRET:-local-sync-secret}
+      GAME_SERVICE_SECRET: ${GAME_SERVICE_SECRET:-local-game-secret}
+      AI_SERVICE_SECRET: ${AI_SERVICE_SECRET:-local-ai-secret}
     expose:
       - "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      gaming-service:
+        condition: service_started
 
   subscription-service:
     build: "./subscription-service"
     container_name: subscription-service
     restart: always
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_KEY: ${SUBSCRIPTION_APP_KEY:-base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}
+      APP_URL: http://localhost/subscription
+      LOG_CHANNEL: stderr
+      RUN_MIGRATIONS: "true"
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: subscription
+      DB_USERNAME: hahu
+      DB_PASSWORD: secret
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+      CACHE_STORE: database
+      SESSION_DRIVER: database
+      QUEUE_CONNECTION: database
+      JWT_SECRET: ${JWT_SECRET:-local-subscription-jwt-secret}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-local-internal-token}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
     expose:
       - "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   cms:
-    build: "./cms"
+    build:
+      context: .
+      dockerfile: cms/Dockerfile
     container_name: cms
     restart: always
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_KEY: ${CMS_APP_KEY:-base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}
+      APP_URL: http://localhost/cms
+      LOG_CHANNEL: stderr
+      RUN_MIGRATIONS: "true"
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: cms
+      DB_USERNAME: hahu
+      DB_PASSWORD: secret
+      REDIS_HOST: redis
+      CACHE_STORE: database
+      SESSION_DRIVER: database
+      QUEUE_CONNECTION: database
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-local-internal-token}
+      CMS_SERVICE_SECRET: ${CMS_SERVICE_SECRET:-local-cms-secret}
+      CHILD_SERVICE_URL: http://child-service:8080
+      SYNC_SERVICE_URL: http://sync-service:8080
+      SUBSCRIPTION_SERVICE_URL: http://subscription-service:8080
+      PARENT_SERVICE_URL: http://cms:8080
+      CHILD_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-local-internal-token}
+      SYNC_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-local-internal-token}
+      SUBSCRIPTION_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-local-internal-token}
+      CLERK_JWKS_URL: ${CLERK_JWKS_URL:-}
+      CLERK_ISSUER: ${CLERK_ISSUER:-}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
     expose:
       - "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   nginx:
     image: nginx:latest
@@ -59,3 +275,6 @@ services:
       - sync-service
       - subscription-service
       - cms
+
+volumes:
+  postgres-data:
