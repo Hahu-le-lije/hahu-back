@@ -34,6 +34,9 @@
       <sourceFolder url="file://$MODULE_DIR$/subscription-service/tests/Feature" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/subscription-service/tests/Unit" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/analysis-recommendation-service/spec" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/analysis-recommendation-service/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/cms/spec" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/cms/vendor/brick/math" />
       <excludeFolder url="file://$MODULE_DIR$/cms/vendor/carbonphp/carbon-doctrine-types" />
       <excludeFolder url="file://$MODULE_DIR$/cms/vendor/composer" />
@@ -286,6 +289,95 @@
       <excludeFolder url="file://$MODULE_DIR$/subscription-service/vendor/vlucas/phpdotenv" />
       <excludeFolder url="file://$MODULE_DIR$/subscription-service/vendor/voku/portable-ascii" />
       <excludeFolder url="file://$MODULE_DIR$/subscription-service/vendor/webmozart/assert" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/brick/math" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/carbonphp/carbon-doctrine-types" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/composer" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/dflydev/dot-access-data" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/doctrine/inflector" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/doctrine/lexer" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/dragonmantank/cron-expression" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/egulias/email-validator" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/firebase/php-jwt" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/fruitcake/php-cors" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/graham-campbell/result-type" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/guzzlehttp/guzzle" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/guzzlehttp/promises" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/guzzlehttp/psr7" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/guzzlehttp/uri-template" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/laravel/ai" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/laravel/framework" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/laravel/prompts" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/laravel/sanctum" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/laravel/serializable-closure" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/laravel/tinker" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/league/commonmark" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/league/config" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/league/flysystem" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/league/flysystem-local" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/league/mime-type-detection" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/league/uri" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/league/uri-interfaces" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/monolog/monolog" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/nesbot/carbon" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/nette/schema" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/nette/utils" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/nikic/php-parser" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/nunomaduro/termwind" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/paragonie/constant_time_encoding" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/paragonie/random_compat" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/php-amqplib/php-amqplib" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/phpoption/phpoption" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/phpseclib/phpseclib" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/prism-php/prism" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/psr/clock" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/psr/container" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/psr/event-dispatcher" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/psr/http-client" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/psr/http-factory" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/psr/http-message" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/psr/log" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/psr/simple-cache" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/psy/psysh" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/ralouphie/getallheaders" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/ramsey/collection" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/ramsey/uuid" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/strobotti/php-jwk" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/clock" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/console" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/css-selector" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/deprecation-contracts" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/error-handler" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/event-dispatcher" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/event-dispatcher-contracts" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/finder" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/http-foundation" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/http-kernel" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/mailer" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/mime" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/polyfill-ctype" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/polyfill-intl-grapheme" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/polyfill-intl-idn" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/polyfill-intl-normalizer" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/polyfill-mbstring" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/polyfill-php80" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/polyfill-php83" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/polyfill-php84" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/polyfill-php85" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/polyfill-uuid" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/process" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/routing" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/service-contracts" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/string" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/translation" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/translation-contracts" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/uid" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/symfony/var-dumper" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/tijsverkoyen/css-to-inline-styles" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/vladimir-yuldashev/laravel-queue-rabbitmq" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/vlucas/phpdotenv" />
+      <excludeFolder url="file://$MODULE_DIR$/analysis-recommendation-service/vendor/voku/portable-ascii" />
+      <excludeFolder url="file://$MODULE_DIR$/cms/storage/app" />
+      <excludeFolder url="file://$MODULE_DIR$/cms/storage/framework" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

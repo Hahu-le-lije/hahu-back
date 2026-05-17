@@ -9,10 +9,10 @@
         <option name="myPath" value="$PROJECT_DIR$/cms" />
       </PhpSpecSuiteConfiguration>
       <PhpSpecSuiteConfiguration>
-        <option name="myPath" value="$PROJECT_DIR$/cms" />
+        <option name="myPath" value="$PROJECT_DIR$/subscription-service" />
       </PhpSpecSuiteConfiguration>
       <PhpSpecSuiteConfiguration>
-        <option name="myPath" value="$PROJECT_DIR$/subscription-service" />
+        <option name="myPath" value="$PROJECT_DIR$/analysis-recommendation-service" />
       </PhpSpecSuiteConfiguration>
     </suites>
   </component>

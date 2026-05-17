@@ -22,7 +22,7 @@ RUN composer install \
     --prefer-dist \
     --optimize-autoloader
 
-FROM php:8.3-apache-bookworm AS runtime
+FROM php:8.4-apache-bookworm AS runtime
 WORKDIR /var/www/html
 
 ENV APP_ENV=production \

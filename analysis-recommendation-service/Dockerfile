@@ -9,18 +9,21 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-FROM composer:2 AS vendor
+FROM php:8.4-cli AS vendor
 WORKDIR /app
 
-COPY composer.json ./
-RUN composer install \
-    --no-interaction \
-    --prefer-dist
+RUN apt-get update && apt-get install -y \
+    perl \
+    dpkg-dev \
+    libzip-dev \
+    unzip
 
-COPY . .
-RUN composer run-script post-autoload-dump || true
+RUN docker-php-ext-install sockets
 
-FROM php:8.3-apache-bookworm AS runtime
+COPY composer.json composer.lock ./
+RUN composer install --no-interaction --prefer-dist
+
+FROM php:8.4-apache-bookworm AS runtime
 WORKDIR /var/www/html
 
 ENV APP_ENV=production \
