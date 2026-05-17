@@ -1,0 +1,61 @@
+version: '3.9'
+
+services:
+
+  child-service:
+    build: "./child-service"
+    container_name: child-service
+    restart: always
+    expose:
+      - "8080"
+
+  gaming-service:
+    build: "./gaming-service"
+    container_name: gaming-service
+    restart: always
+    expose:
+      - "8080"
+
+  analysis-service:
+    build: "./analysis-recommendation-service"
+    container_name: analysis-service
+    restart: always
+    expose:
+      - "8080"
+
+  sync-service:
+    build: "./sync-service"
+    container_name: sync-service
+    restart: always
+    expose:
+      - "8080"
+
+  subscription-service:
+    build: "./subscription-service"
+    container_name: subscription-service
+    restart: always
+    expose:
+      - "8080"
+
+  cms:
+    build: "./cms"
+    container_name: cms
+    restart: always
+    expose:
+      - "8080"
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx-gateway
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - child-service
+      - gaming-service
+      - analysis-service
+      - sync-service
+      - subscription-service
+      - cms
