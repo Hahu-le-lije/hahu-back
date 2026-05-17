@@ -1,0 +1,9 @@
+/node_modules
+/public/build
+/storage/*.key
+/vendor
+.env
+.phpunit.result.cache
+docker-compose.override.yml
+proxy.py
+Auth_6a08605380.json
