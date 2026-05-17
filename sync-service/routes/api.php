@@ -2,8 +2,19 @@
 
 use App\Http\Controllers\Api\AnalyticsOverviewController;
 use App\Http\Controllers\Api\DailySummaryController;
+use App\Http\Controllers\Api\LearningSessionController;
 use App\Http\Controllers\Api\WeeklySummaryController;
 use App\Http\Controllers\Api\AiExportController;
+
+Route::post(
+    '/sessions',
+    [LearningSessionController::class, 'store']
+);
+
+Route::post(
+    '/learning-events',
+    [LearningSessionController::class, 'store']
+);
 
 Route::get(
     '/children/{childId}/daily-summary',

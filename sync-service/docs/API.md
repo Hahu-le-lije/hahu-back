@@ -21,7 +21,7 @@ All API paths below are prefixed with `/api`.
 
 ## Authentication
 
-Most frontend summary endpoints are currently public inside the service boundary.
+The frontend session ingestion and summary endpoints are currently public inside the service boundary. Session ingestion accepts an `Authorization` header if the frontend provides one, but this service does not currently validate browser-issued child tokens.
 
 The AI feature snapshot endpoint is protected by service JWT middleware:
 
@@ -40,6 +40,78 @@ The token must be generated from the service-auth secrets configured for this ba
 Coordinate with the backend team before calling protected AI routes from a frontend client. These routes are intended for service-to-service traffic, not browser-issued user tokens.
 
 ## Endpoints
+
+### Submit Learning Sessions
+
+```http
+POST /api/sessions
+```
+
+Compatibility alias:
+
+```http
+POST /api/learning-events
+```
+
+Accepts gameplay sessions from the frontend and stores them as learning events. Newly created events dispatch summary aggregation work; duplicate session ids are accepted without dispatching again so frontend retries do not double-count summaries.
+
+#### Request Body
+
+```json
+{
+  "sessions": [
+    {
+      "id": "session_001",
+      "childId": "child_123",
+      "gameType": "phonics",
+      "contentId": "lesson_abc",
+      "score": 80,
+      "timeSpent": 300,
+      "totalQuestions": 10,
+      "correctAnswers": 8,
+      "skillBreakdown": {
+        "letter_sounds": 0.8,
+        "blending": 0.7
+      },
+      "createdAt": "2026-05-10T10:15:00Z"
+    }
+  ]
+}
+```
+
+#### Accepted Session Fields
+
+The service accepts both camelCase and snake_case names for common fields.
+
+| Stored Field | Accepted Input Fields | Required | Notes |
+| --- | --- | --- | --- |
+| `event_id` | `event_id`, `eventId`, `session_id`, `sessionId`, `id` | Yes | Stable unique id for idempotent retries. |
+| `child_id` | `child_id`, `childId` | Yes | Child identifier from the child/account domain. |
+| `game_type` | `game_type`, `gameType`, `type` | Yes | Game/category that produced the session. |
+| `content_id` | `content_id`, `contentId`, `lesson_id`, `lessonId` | Yes | Content or lesson identifier. |
+| `score` | `score` | No | Defaults to `0`. |
+| `time_spent` | `time_spent`, `timeSpent`, `duration_seconds`, `durationSeconds`, `duration_ms`, `durationMs` | No | Stored in seconds. Milliseconds are converted. Defaults to `0`. |
+| `metrics` | `metrics`, plus top-level `totalQuestions`/`correctAnswers` aliases | No | Stored as flexible JSON. |
+| `skill_breakdown` | `skill_breakdown`, `skillBreakdown`, `skills` | No | Stored as flexible JSON. |
+| `event_created_at` | `event_created_at`, `eventCreatedAt`, `created_at`, `createdAt`, `completed_at`, `completedAt`, `ended_at`, `endedAt`, `timestamp` | No | Defaults to server time when absent or invalid. |
+| `last_updated` | `last_updated`, `lastUpdated`, `updated_at`, `updatedAt` | No | Defaults to server time. |
+
+#### Success Response
+
+Status: `202 Accepted`
+
+```json
+{
+  "message": "Learning sessions accepted.",
+  "accepted": 1,
+  "created": 1,
+  "duplicates": 0,
+  "event_ids": ["session_001"],
+  "errors": []
+}
+```
+
+If a batch has both valid and invalid sessions, valid sessions are accepted and validation details are returned in `errors`. If no sessions are accepted, the endpoint returns Laravel validation errors with status `422`.
 
 ### Get Latest Daily Summary
 

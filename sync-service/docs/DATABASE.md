@@ -1,22 +1,21 @@
 # Database Schemas
 
-This service stores imported gameplay events, derives child-level literacy summaries from those events, and keeps operational state for sync, queues, cache, sessions, and service authentication.
+This service stores frontend-submitted gameplay sessions, derives child-level literacy summaries from those sessions, and keeps operational state for queues, cache, sessions, and service authentication.
 
 The major service-owned schemas are:
 
-- `learning_events` - raw gameplay events imported from Game Service.
+- `learning_events` - raw gameplay sessions submitted by the frontend.
 - `daily_summaries` - per-child, per-day analytics rollups.
 - `weekly_summaries` - per-child, per-week analytics rollups.
-- `sync_checkpoints` - incremental sync state for upstream services.
 
 Laravel also owns supporting tables for queues, cache, sessions, users, password resets, and Sanctum personal access tokens.
 
 ## Data Flow
 
-1. The `sync:game-events` command reads the `game_service` row in `sync_checkpoints`.
-2. It asks Game Service for events changed since `last_successful_sync`.
-3. Each upstream event is upserted into `learning_events` by external `event_id`.
-4. A `ProcessLearningEventJob` is dispatched for each synced event.
+1. The frontend posts `{ "sessions": [...] }` to the session ingestion endpoint.
+2. Each submitted session is normalized and inserted into `learning_events` by stable `event_id`.
+3. Duplicate `event_id` values are accepted but do not dispatch aggregation again.
+4. A `ProcessLearningEventJob` is dispatched for each newly created event.
 5. The job updates one row in `daily_summaries` and one row in `weekly_summaries` for the event's child and event date/week.
 6. API endpoints read from summaries for dashboard responses and from `learning_events` for AI event export.
 
@@ -24,7 +23,7 @@ There are no database-level foreign keys between these domain tables. `child_id`
 
 ## `learning_events`
 
-Raw imported gameplay records. This table is the local event ledger for analytics and AI export.
+Raw frontend-submitted gameplay records. This table is the local event ledger for analytics and AI export.
 
 Source migration: `database/migrations/2026_05_10_100217_create_learning_events_table.php`  
 Model: `app/Models/LearningEvent.php`
@@ -32,17 +31,17 @@ Model: `app/Models/LearningEvent.php`
 | Column | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `id` | bigint | yes | Internal primary key. |
-| `event_id` | string | yes | Immutable upstream event ID from Game Service. Unique. |
+| `event_id` | string | yes | Stable client-provided session/event ID. Unique. |
 | `child_id` | string | yes | External child identifier. Indexed. |
 | `game_type` | string | yes | Game/category that produced the event. |
 | `content_id` | string | yes | Upstream content identifier. |
-| `score` | integer | yes | Raw score supplied by Game Service. |
+| `score` | integer | yes | Raw score supplied by the frontend session payload. |
 | `time_spent` | integer | yes | Seconds spent in the session/event. |
 | `metrics` | jsonb | no | Flexible event metrics. Aggregation currently reads `total_questions` and `correct_answers`. Cast to array by Eloquent. |
 | `skill_breakdown` | jsonb | no | Flexible skill-level values keyed by skill name. Cast to array by Eloquent. |
-| `event_created_at` | timestamp | yes | Original event creation time from Game Service. Used for daily and weekly grouping. |
-| `last_updated` | timestamp | yes | Upstream update timestamp. Indexed and used for incremental sync semantics. |
-| `synced_at` | timestamp | no | Time this service last synced the event. |
+| `event_created_at` | timestamp | yes | Original session/event creation time. Used for daily and weekly grouping. |
+| `last_updated` | timestamp | yes | Client-provided update timestamp or server ingestion time. Indexed. |
+| `synced_at` | timestamp | no | Time this service accepted the event. |
 | `created_at` | timestamp | no | Laravel row creation timestamp. |
 | `updated_at` | timestamp | no | Laravel row update timestamp. |
 
@@ -56,9 +55,9 @@ Indexes and constraints:
 
 Usage notes:
 
-- Ingestion uses `updateOrCreate(['event_id' => $event['id']], ...)`, so repeated pulls update the same local row.
+- Ingestion uses `firstOrCreate(['event_id' => ...], ...)`, so repeated frontend retries with the same session id do not create a second local row.
 - The AI event export endpoint returns up to 1000 rows per child ordered by `event_created_at`, optionally filtered with `event_created_at >= since`.
-- Summary aggregation is additive. If an existing upstream event is updated and reprocessed, the current aggregation code adds the event values again instead of recomputing the period from source rows.
+- Summary aggregation is additive. To prevent retry double-counting, duplicate `event_id` submissions are not reprocessed.
 
 ## `daily_summaries`
 
@@ -137,32 +136,6 @@ Aggregation behavior:
 - Metrics use the same formulas as `daily_summaries`.
 - Latest weekly summary endpoints order by `week_start_date` descending.
 - Week boundaries follow the runtime Carbon locale/configuration default unless explicitly configured elsewhere.
-
-## `sync_checkpoints`
-
-Tracks the last successful sync timestamp per upstream service.
-
-Source migration: `database/migrations/2026_05_10_100301_create_sync_checkpoints_table.php`  
-Model: `app/Models/SyncCheckpoint.php`
-
-| Column | Type | Required | Notes |
-| --- | --- | --- | --- |
-| `id` | bigint | yes | Internal primary key. |
-| `service_name` | string | yes | Upstream service key. Unique. Current value used by the sync command: `game_service`. |
-| `last_successful_sync` | timestamp | no | Last completed sync time. Cast to datetime by Eloquent. |
-| `created_at` | timestamp | no | Laravel row creation timestamp. |
-| `updated_at` | timestamp | no | Laravel row update timestamp. |
-
-Indexes and constraints:
-
-- Primary key: `id`.
-- Unique: `service_name`.
-
-Usage notes:
-
-- `sync:game-events` creates `game_service` with a null checkpoint if missing.
-- The checkpoint value is sent to Game Service as an ISO timestamp.
-- The command updates `last_successful_sync` after processing the fetched batch and dispatching aggregation jobs.
 
 ## Laravel Operational Tables
 

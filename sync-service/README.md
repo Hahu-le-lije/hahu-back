@@ -1,13 +1,14 @@
 # Sync Service
 
-Sync Service is a Laravel backend that imports gameplay events from the Game Service and converts them into child-level literacy analytics.
+Sync Service is a Laravel backend that accepts gameplay sessions from the frontend and converts them into child-level literacy analytics.
 
 It keeps a local copy of learning events, maintains daily and weekly summaries, and exposes analytics endpoints for frontend and AI consumers.
 
 ## What It Does
 
-- Pulls gameplay events from the Game Service on a schedule.
-- Stores each event as a local `learning_event`.
+- Accepts frontend-submitted gameplay sessions at `POST /api/sessions`.
+- Stores each accepted session as a local `learning_event`.
+- Ignores duplicate session ids for aggregation so frontend retries do not double-count summaries.
 - Aggregates events into daily and weekly literacy summaries.
 - Calculates accuracy, consistency, skill diversity, and mastery score.
 - Generates short human-readable explanations for literacy progress.
@@ -16,18 +17,17 @@ It keeps a local copy of learning events, maintains daily and weekly summaries, 
 
 ## Core Flow
 
-1. Laravel scheduler runs `sync:game-events` every minute.
-2. `GameServiceClient` requests new or updated events from the Game Service.
-3. Events are upserted into the `learning_events` table by external `event_id`.
-4. Each synced event dispatches `ProcessLearningEventJob`.
-5. The job updates daily and weekly summaries for the child.
-6. API consumers fetch the latest analytics summaries or AI export data.
+1. The frontend posts `{ "sessions": [...] }` to `POST /api/sessions`.
+2. The service normalizes each session into the `learning_events` table by stable `event_id`.
+3. Newly created events dispatch `ProcessLearningEventJob`.
+4. The job updates daily and weekly summaries for the child.
+5. API consumers fetch the latest analytics summaries or AI export data.
 
 ## Main Concepts
 
 ### Learning Events
 
-Learning events are raw gameplay records imported from the Game Service. They include:
+Learning events are raw gameplay records submitted by the frontend. They include:
 
 - child ID
 - game type
@@ -37,7 +37,7 @@ Learning events are raw gameplay records imported from the Game Service. They in
 - metrics such as total questions and correct answers
 - skill breakdown
 - original event timestamp
-- sync timestamp
+- ingestion timestamp
 
 ### Daily Summaries
 
@@ -56,17 +56,15 @@ The AI snapshot endpoint summarizes the latest daily records into a compact feat
 - PHP 8.2+
 - Laravel 12
 - Laravel Queue
-- Laravel Scheduler
 - SQLite by default for local development
 - Firebase PHP-JWT for service-to-service JWTs
 - Vite/Tailwind scaffold from the Laravel starter
 
 ## Important Files
 
-- `routes/api.php` - public and protected API routes
-- `routes/console.php` - scheduled sync command
-- `app/Console/Commands/PullGameEvents.php` - imports events from Game Service
-- `app/Integrations/GameService/GameServiceClient.php` - Game Service HTTP client
+- `routes/api.php` - ingestion, summary, and protected AI routes
+- `app/Http/Controllers/Api/LearningSessionController.php` - frontend session ingestion endpoint
+- `app/Services/LearningSessionIngestionService.php` - session normalization and idempotent persistence
 - `app/Jobs/ProcessLearningEventJob.php` - queued aggregation job
 - `app/Services/SummaryAggregationService.php` - daily and weekly aggregation logic
 - `app/Analytics/LiteracyAnalyticsService.php` - analytics formulas
@@ -88,17 +86,11 @@ php artisan key:generate
 The service-specific values used by this app are:
 
 ```env
-GAME_SERVICE_URL=
-GAME_SERVICE_TOKEN=
-
 SYNC_SERVICE_SECRET=
-GAME_SERVICE_SECRET=
 AI_SERVICE_SECRET=
 ```
 
-`GAME_SERVICE_URL` and `GAME_SERVICE_TOKEN` are used when pulling events from the Game Service.
-
-`SYNC_SERVICE_SECRET`, `GAME_SERVICE_SECRET`, and `AI_SERVICE_SECRET` are used for service-to-service JWT validation.
+`SYNC_SERVICE_SECRET` and `AI_SERVICE_SECRET` are used for service-to-service JWT validation.
 
 ## Local Setup
 
@@ -149,21 +141,13 @@ gcloud run deploy sync-service \
   --allow-unauthenticated
 ```
 
-Set production values with Cloud Run environment variables or Secret Manager. At minimum, configure `APP_KEY`, `APP_URL`, database settings, `GAME_SERVICE_URL`, `GAME_SERVICE_TOKEN`, `SYNC_SERVICE_SECRET`, `GAME_SERVICE_SECRET`, and `AI_SERVICE_SECRET`.
+Set production values with Cloud Run environment variables or Secret Manager. At minimum, configure `APP_KEY`, `APP_URL`, database settings, `SYNC_SERVICE_SECRET`, and `AI_SERVICE_SECRET`.
 
-The HTTP Cloud Run service should not be relied on to run the Laravel scheduler or queue worker continuously. Use Cloud Scheduler or Cloud Run Jobs to invoke `php artisan sync:game-events`, and run queue work with a dedicated worker/job process such as `php artisan queue:work --tries=1`.
-
-## Running the Sync Manually
-
-```bash
-php artisan sync:game-events
-```
-
-The scheduled version is defined in `routes/console.php` and runs every minute when the Laravel scheduler is active.
+The HTTP Cloud Run service should not be relied on to run the Laravel queue worker continuously. Run queue work with a dedicated worker/job process such as `php artisan queue:work --tries=1`.
 
 ## Queues
 
-Synced events dispatch `ProcessLearningEventJob`, so the queue worker must be running for summaries to update asynchronously:
+Accepted sessions dispatch `ProcessLearningEventJob`, so the queue worker must be running for summaries to update asynchronously:
 
 ```bash
 php artisan queue:listen --tries=1 --timeout=0
@@ -186,6 +170,5 @@ It documents available endpoints, response shapes, error responses, and authenti
 - The summary formulas are intentionally simple and may evolve.
 - Consistency is currently stored as a placeholder value of `1.0` during aggregation.
 - Skill diversity is currently calculated from the event skill breakdown count divided by `10`.
-- The regular summary endpoints are currently unprotected.
+- The session ingestion and regular summary endpoints are currently unprotected.
 - The AI feature snapshot endpoint is protected by `service.jwt`.
-- Starter Laravel example tests are still present; service-specific tests should be added as the API stabilizes.

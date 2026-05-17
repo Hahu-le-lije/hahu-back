@@ -13,14 +13,8 @@ return [
     | a conventional file to locate the various service credentials.
     |
     */
-    'game_service' => [
-        'url' => env('GAME_SERVICE_URL'),
-        'token' => env('GAME_SERVICE_TOKEN'),
-    ],
-
     'service_auth' => [
         'sync' => env('SYNC_SERVICE_SECRET'),
-        'game' => env('GAME_SERVICE_SECRET'),
         'ai' => env('AI_SERVICE_SECRET'),
     ],
 

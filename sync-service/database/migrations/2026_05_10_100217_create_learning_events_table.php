@@ -13,7 +13,7 @@ return new class extends Migration
             // Internal DB ID
             $table->id();
 
-            // External immutable event ID from Game Service
+            // Client-provided immutable session/event ID
             $table->string('event_id')->unique();
 
             // Child identity from Child Service
