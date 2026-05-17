@@ -43,10 +43,19 @@ return [
         'url' => env('PARENT_SERVICE_URL', env('APP_URL', 'http://localhost')),
     ],
     'child_service' => [
-        'url' => env('CHILD_SERVICE_URL', env('APP_URL', 'http://localhost')),
-        'jwks_url' => env('CLERK_JWKS_URL'),
-        'issuer' => env('CLERK_ISSUER'),
-        'jwks_verify' => env('CLERK_JWKS_VERIFY', true),
+        'url' => env('CHILD_SERVICE_URL', 'http://localhost:8001'),
+        'secret_token' => env('CHILD_SERVICE_TOKEN', env('INTERNAL_SERVICE_TOKEN')),
+    ],
+    'sync_service' => [
+        'url' => env('SYNC_SERVICE_URL', 'http://localhost:8002'),
+        'secret_token' => env('SYNC_SERVICE_TOKEN', env('INTERNAL_SERVICE_TOKEN')),
+    ],
+    'subscription_service' => [
+        'url' => env('SUBSCRIPTION_SERVICE_URL', 'http://localhost:8003'),
+        'secret_token' => env('SUBSCRIPTION_SERVICE_TOKEN', env('INTERNAL_SERVICE_TOKEN')),
+    ],
+    'service_auth' => [
+        'cms' => env('CMS_SERVICE_SECRET', 'cms_secret_key'),
     ],
 
 ];
