@@ -66,3 +66,20 @@ CHILD_PIN_LENGTH=6
 php artisan route:list
 php artisan test
 ```
+
+## Google Cloud Run
+
+This service includes a Dockerfile for Cloud Run. Build and deploy the image from this directory:
+
+```bash
+export PROJECT_ID=your-gcp-project
+export REGION=us-central1
+export REPOSITORY=services
+export IMAGE_URI=$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/child-service
+
+gcloud artifacts repositories create $REPOSITORY --repository-format=docker --location=$REGION
+gcloud builds submit --tag $IMAGE_URI
+gcloud run deploy child-service --image $IMAGE_URI --platform managed --region $REGION
+```
+
+Cloud Run provides the `PORT` environment variable automatically. Configure the app secrets and service settings in Cloud Run, including `APP_KEY`, `APP_URL`, `CHILD_SERVICE_JWT_SECRET`, Clerk settings, subscription service token, and database connection variables. Run database migrations as a separate deploy step rather than on container startup.
