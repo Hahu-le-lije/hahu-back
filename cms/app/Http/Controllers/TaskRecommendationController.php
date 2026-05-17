@@ -4,58 +4,153 @@ namespace App\Http\Controllers;
 
 use App\Models\AssignedTask;
 use App\Models\Content;
+use App\Services\ChildServiceClient;
+use App\Services\SyncServiceClient;
+use App\Services\SubscriptionServiceClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 class TaskRecommendationController extends Controller
 {
-    // GET /api/children/{child_id}/tasks/recommendations
-    public function recommendations(string $childId): JsonResponse
+    protected ChildServiceClient $childServiceClient;
+    protected SyncServiceClient $syncServiceClient;
+    protected SubscriptionServiceClient $subscriptionServiceClient;
+
+    public function __construct(
+        ChildServiceClient $childServiceClient,
+        SyncServiceClient $syncServiceClient,
+        SubscriptionServiceClient $subscriptionServiceClient
+    ) {
+        $this->childServiceClient = $childServiceClient;
+        $this->syncServiceClient = $syncServiceClient;
+        $this->subscriptionServiceClient = $subscriptionServiceClient;
+    }
+
+    /**
+     * Get task recommendations for a child
+     * GET /api/children/{child_id}/tasks/recommendations
+     */
+    public function recommendations(Request $request, string $childId): JsonResponse
+    {
+        try {
+            $parentId = $request->user()?->id;
+            
+            if (!$parentId) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            // Verify parent owns this child
+            if (!$this->childServiceClient->verifyParentOwnsChild($childId, $parentId)) {
+                Log::warning("Unauthorized child access attempt: parent {$parentId} tried to access child {$childId}");
+                return response()->json(['error' => 'Child not found or not owned by parent'], 403);
+            }
+
+            // Verify parent has active subscription
+            if (!$this->subscriptionServiceClient->hasActiveSubscription($parentId)) {
+                Log::info("Parent {$parentId} does not have active subscription");
+                return response()->json(['error' => 'No active subscription'], 403);
+            }
+
+            $recommendations = $this->generateRecommendations($childId);
+
+            return response()->json(['recommendations' => $recommendations]);
+        } catch (\Throwable $e) {
+            Log::error("Error getting recommendations: " . $e->getMessage());
+            return response()->json(['error' => 'Failed to get recommendations'], 500);
+        }
+    }
+
+    /**
+     * Assign a task to a child
+     * POST /api/children/{child_id}/tasks/assign
+     */
+    public function assign(Request $request, string $childId): JsonResponse
+    {
+        try {
+            $parentId = $request->user()?->id;
+            
+            if (!$parentId) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            // Verify parent owns this child
+            if (!$this->childServiceClient->verifyParentOwnsChild($childId, $parentId)) {
+                Log::warning("Unauthorized task assignment attempt: parent {$parentId} tried to assign to child {$childId}");
+                return response()->json(['error' => 'Child not found or not owned by parent'], 403);
+            }
+
+            // Verify parent has active subscription
+            if (!$this->subscriptionServiceClient->hasActiveSubscription($parentId)) {
+                return response()->json(['error' => 'No active subscription'], 403);
+            }
+
+            $validated = $request->validate([
+                'content_id' => 'required|integer|exists:content,id',
+                'game_type_id' => 'required|integer',
+                'reason' => 'nullable|string',
+            ]);
+
+            $task = AssignedTask::create([
+                'child_id' => $childId,
+                'content_id' => $validated['content_id'],
+                'game_type_id' => $validated['game_type_id'],
+                'status' => 'pending',
+                'assigned_by' => $parentId,
+                'assigned_at' => now(),
+                'reason' => $validated['reason'] ?? null,
+            ]);
+
+            // Notify other services about the task assignment
+            $this->notifyServicesOfTaskAssignment($task, $childId);
+
+            return response()->json(['success' => true, 'assigned_task' => $task], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['error' => 'Validation failed', 'errors' => $e->errors()], 422);
+        } catch (\Throwable $e) {
+            Log::error("Error assigning task: " . $e->getMessage());
+            return response()->json(['error' => 'Failed to assign task'], 500);
+        }
+    }
+
+    /**
+     * Generate recommendations based on sync service data
+     */
+    private function generateRecommendations(string $childId): array
     {
         $recommendations = [];
 
-        // Prefer receiving summaries from the external sync service
-        $syncUrl = config('services.sync.url') ?? env('SYNC_SERVICE_URL');
-        if ($syncUrl) {
-            try {
-                $resp = Http::timeout(5)->get(rtrim($syncUrl, '/') . "/api/children/{$childId}/summaries/latest");
-                if ($resp->successful()) {
-                    $data = $resp->json();
-                    // Expecting data to be an array of { game_type_id, mastery_score, accuracy }
-                    foreach ($data as $row) {
-                        $gameTypeId = (int)($row['game_type_id'] ?? 0);
-                        $mastery = isset($row['mastery_score']) ? (float)$row['mastery_score'] : null;
-                        $accuracy = isset($row['accuracy']) ? (float)$row['accuracy'] : null;
+        // Try to get summaries from sync service (preferred method)
+        $summaries = $this->syncServiceClient->getLatestSummaries($childId);
+        
+        if ($summaries && is_array($summaries)) {
+            foreach ($summaries as $row) {
+                $gameTypeId = (int)($row['game_type_id'] ?? 0);
+                $mastery = isset($row['mastery_score']) ? (float)$row['mastery_score'] : null;
+                $accuracy = isset($row['accuracy']) ? (float)$row['accuracy'] : null;
 
-                        if ($this->needsRecommendation($mastery, $accuracy)) {
-                            $content = $this->findContentForGameType($gameTypeId);
-                            if ($content) {
-                                $reason = $mastery !== null && $mastery < 0.7
-                                    ? "Mastery score below 0.7"
-                                    : ( ($accuracy !== null && $accuracy < 0.7) ? "Accuracy below 0.7" : "Performance recommendation");
+                if ($this->needsRecommendation($mastery, $accuracy)) {
+                    $content = $this->findContentForGameType($gameTypeId);
+                    if ($content) {
+                        $reason = $mastery !== null && $mastery < 0.7
+                            ? "Mastery score below 0.7"
+                            : (($accuracy !== null && $accuracy < 0.7) ? "Accuracy below 0.7" : "Performance recommendation");
 
-                                $recommendations[] = [
-                                    'game_type_id' => $gameTypeId,
-                                    'content_id' => $content->id,
-                                    'title' => $content->title,
-                                    'reason' => $reason,
-                                ];
-                            }
-                        }
+                        $recommendations[] = [
+                            'game_type_id' => $gameTypeId,
+                            'content_id' => $content->id,
+                            'title' => $content->title,
+                            'reason' => $reason,
+                        ];
                     }
-                    return response()->json(['recommendations' => $recommendations]);
                 }
-            } catch (\Throwable $e) {
-                Log::warning('Sync service unavailable for recommendations: ' . $e->getMessage());
             }
+            return $recommendations;
         }
 
-        // Fallback: derive simple heuristics from local learning_events or fall back to content list
-        // We attempt to read aggregated metrics from daily_summaries if present, else we return a minimal list.
+        // Fallback: Try local daily_summaries table if present
         if (Schema::hasTable('daily_summaries')) {
             $rows = DB::table('daily_summaries')
                 ->where('child_id', $childId)
@@ -79,7 +174,7 @@ class TaskRecommendationController extends Controller
                     }
                 }
             }
-            return response()->json(['recommendations' => $recommendations]);
+            return $recommendations;
         }
 
         // Final fallback: return top active content across known game types
@@ -95,27 +190,28 @@ class TaskRecommendationController extends Controller
             }
         }
 
-        return response()->json(['recommendations' => $recommendations]);
+        return $recommendations;
     }
 
-    // POST /api/children/{child_id}/tasks/assign
-    public function assign(Request $request, string $childId): JsonResponse
+    /**
+     * Notify other services about task assignment
+     */
+    private function notifyServicesOfTaskAssignment(AssignedTask $task, string $childId): void
     {
-        $validated = $request->validate([
-            'content_id' => 'required|integer|exists:content,id',
-            'game_type_id' => 'required|integer',
-            'reason' => 'nullable|string',
-        ]);
-        $task = AssignedTask::create([
-            'child_id' => $childId,
-            'content_id' => $validated['content_id'],
-            'game_type_id' => $validated['game_type_id'],
-            'status' => 'pending',
-            'assigned_by' => $request->user()?->id ?? null,
-            'assigned_at' => now(),
-            'reason' => $validated['reason'] ?? null,
-        ]);
-        return response()->json(['success' => true, 'assigned_task' => $task], 201);
+        try {
+            // This would be used by Analysis Service or other services
+            // For now, we log it - in production, dispatch a job or event
+            Log::info("Task assigned", [
+                'task_id' => $task->id,
+                'child_id' => $childId,
+                'content_id' => $task->content_id,
+                'assigned_by' => $task->assigned_by,
+                'timestamp' => $task->assigned_at,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error("Failed to notify services of task assignment: " . $e->getMessage());
+            // Don't throw - task was created successfully, notification failure shouldn't block
+        }
     }
 
     private function gameTypeId($gameType): int
