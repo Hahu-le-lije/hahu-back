@@ -128,6 +128,31 @@ The `dev` script starts:
 - Laravel Pail logs
 - Vite dev server
 
+## Container / Google Cloud Run
+
+This service includes a production Dockerfile suitable for Cloud Run. The container serves Laravel through Apache, uses `public/` as the document root, builds Vite assets during the image build, and listens on Cloud Run's `PORT` environment variable.
+
+Build locally:
+
+```bash
+docker build -t sync-service .
+docker run --rm -p 8080:8080 --env-file .env sync-service
+```
+
+Deploy with Google Cloud Build and Cloud Run:
+
+```bash
+gcloud builds submit --tag gcr.io/PROJECT_ID/sync-service
+gcloud run deploy sync-service \
+  --image gcr.io/PROJECT_ID/sync-service \
+  --region REGION \
+  --allow-unauthenticated
+```
+
+Set production values with Cloud Run environment variables or Secret Manager. At minimum, configure `APP_KEY`, `APP_URL`, database settings, `GAME_SERVICE_URL`, `GAME_SERVICE_TOKEN`, `SYNC_SERVICE_SECRET`, `GAME_SERVICE_SECRET`, and `AI_SERVICE_SECRET`.
+
+The HTTP Cloud Run service should not be relied on to run the Laravel scheduler or queue worker continuously. Use Cloud Scheduler or Cloud Run Jobs to invoke `php artisan sync:game-events`, and run queue work with a dedicated worker/job process such as `php artisan queue:work --tries=1`.
+
 ## Running the Sync Manually
 
 ```bash
