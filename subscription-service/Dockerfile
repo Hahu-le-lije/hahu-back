@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:20-alpine AS assets
+FROM node:20-bookworm AS assets
 WORKDIR /app
 
 COPY package*.json ./
