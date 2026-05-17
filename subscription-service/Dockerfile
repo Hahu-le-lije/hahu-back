@@ -12,10 +12,9 @@ RUN npm run build
 FROM composer:2 AS vendor
 WORKDIR /app
 
-RUN docker-php-ext-install sockets
-
 COPY composer.json composer.lock ./
 RUN composer install \
+    --ignore-platform-req=ext-sockets \
     --no-dev \
     --no-interaction \
     --no-progress \
@@ -41,6 +40,7 @@ RUN apt-get update \
         libpng-dev \
         libpq-dev \
         libzip-dev \
+        libsqlite3-dev \
         unzip \
     && docker-php-ext-configure gd --with-jpeg \
     && docker-php-ext-install \

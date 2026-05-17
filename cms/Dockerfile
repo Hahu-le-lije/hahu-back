@@ -36,6 +36,7 @@ RUN apt-get update \
         libicu-dev \
         libpq-dev \
         libzip-dev \
+        libsqlite3-dev \
         unzip \
     && docker-php-ext-install \
         intl \
