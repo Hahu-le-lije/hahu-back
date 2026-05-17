@@ -34,7 +34,6 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
-
     'clerk' => [
         'secret_key' => env('CLERK_SECRET_KEY'),
         'frontend_url' => env('FRONTEND_URL'),
@@ -44,9 +43,6 @@ return [
     ],
     'child_service' => [
         'url' => env('CHILD_SERVICE_URL', env('APP_URL', 'http://localhost')),
-        'jwks_url' => env('CLERK_JWKS_URL'),
-        'issuer' => env('CLERK_ISSUER'),
-        'jwks_verify' => env('CLERK_JWKS_VERIFY', true),
     ],
 
 ];
