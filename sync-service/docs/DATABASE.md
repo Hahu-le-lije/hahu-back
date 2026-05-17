@@ -19,6 +19,8 @@ Laravel also owns supporting tables for queues, cache, sessions, users, password
 5. The job updates one row in `daily_summaries` and one row in `weekly_summaries` for the event's child and event date/week.
 6. API endpoints read from summaries for dashboard responses and from `learning_events` for AI event export.
 
+The CMS-facing latest summaries endpoint does not use a separate table. It groups `learning_events` by recognized game type at request time and returns ratio scores for recommendation logic.
+
 There are no database-level foreign keys between these domain tables. `child_id` is an external string identifier owned by the broader child/account domain.
 
 ## `learning_events`

@@ -18,6 +18,13 @@ return [
         'ai' => env('AI_SERVICE_SECRET'),
     ],
 
+    'internal_service_tokens' => array_values(array_unique(array_filter([
+        env('INTERNAL_SERVICE_TOKEN'),
+        env('SYNC_SERVICE_TOKEN'),
+        env('SYNC_SERVICE_SECRET_TOKEN'),
+        env('SYNC_SERVICE_SECRET'),
+    ]))),
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

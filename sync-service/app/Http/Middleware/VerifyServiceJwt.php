@@ -19,6 +19,15 @@ class VerifyServiceJwt
         }
 
         $token = substr($authHeader, 7);
+        $internalTokens = config('services.internal_service_tokens', []);
+
+        foreach ($internalTokens as $internalToken) {
+            if (is_string($internalToken) && $internalToken !== '' && hash_equals($internalToken, $token)) {
+                $request->attributes->set('service_identity', 'internal');
+
+                return $next($request);
+            }
+        }
 
         $service = new ServiceJwtService();
 

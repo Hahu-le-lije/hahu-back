@@ -64,7 +64,9 @@ The AI snapshot endpoint summarizes the latest daily records into a compact feat
 
 - `routes/api.php` - ingestion, summary, and protected AI routes
 - `app/Http/Controllers/Api/LearningSessionController.php` - frontend session ingestion endpoint
+- `app/Http/Controllers/Api/LatestSummariesController.php` - CMS-facing game-type summaries endpoint
 - `app/Services/LearningSessionIngestionService.php` - session normalization and idempotent persistence
+- `app/Services/GameTypeSummaryService.php` - per-game-type aggregation for CMS recommendations
 - `app/Jobs/ProcessLearningEventJob.php` - queued aggregation job
 - `app/Services/SummaryAggregationService.php` - daily and weekly aggregation logic
 - `app/Analytics/LiteracyAnalyticsService.php` - analytics formulas
@@ -86,11 +88,12 @@ php artisan key:generate
 The service-specific values used by this app are:
 
 ```env
+INTERNAL_SERVICE_TOKEN=
 SYNC_SERVICE_SECRET=
 AI_SERVICE_SECRET=
 ```
 
-`SYNC_SERVICE_SECRET` and `AI_SERVICE_SECRET` are used for service-to-service JWT validation.
+`INTERNAL_SERVICE_TOKEN` lets internal services such as CMS call protected sync endpoints with a shared bearer token. The service also accepts legacy configured sync bearer tokens for compatibility. `SYNC_SERVICE_SECRET` and `AI_SERVICE_SECRET` are used for service-to-service JWT validation.
 
 ## Local Setup
 
@@ -141,7 +144,7 @@ gcloud run deploy sync-service \
   --allow-unauthenticated
 ```
 
-Set production values with Cloud Run environment variables or Secret Manager. At minimum, configure `APP_KEY`, `APP_URL`, database settings, `SYNC_SERVICE_SECRET`, and `AI_SERVICE_SECRET`.
+Set production values with Cloud Run environment variables or Secret Manager. At minimum, configure `APP_KEY`, `APP_URL`, database settings, `INTERNAL_SERVICE_TOKEN`, `SYNC_SERVICE_SECRET`, and `AI_SERVICE_SECRET`.
 
 The HTTP Cloud Run service should not be relied on to run the Laravel queue worker continuously. Run queue work with a dedicated worker/job process such as `php artisan queue:work --tries=1`.
 
@@ -171,4 +174,5 @@ It documents available endpoints, response shapes, error responses, and authenti
 - Consistency is currently stored as a placeholder value of `1.0` during aggregation.
 - Skill diversity is currently calculated from the event skill breakdown count divided by `10`.
 - The session ingestion and regular summary endpoints are currently unprotected.
+- `GET /api/children/{childId}/summaries/latest` returns ratio scores for CMS recommendation logic.
 - The AI feature snapshot endpoint is protected by `service.jwt`.

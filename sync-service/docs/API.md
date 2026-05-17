@@ -23,13 +23,16 @@ All API paths below are prefixed with `/api`.
 
 The frontend session ingestion and summary endpoints are currently public inside the service boundary. Session ingestion accepts an `Authorization` header if the frontend provides one, but this service does not currently validate browser-issued child tokens.
 
-The AI feature snapshot endpoint is protected by service JWT middleware:
+The AI feature snapshot endpoint is protected by service authentication:
 
 ```http
 Authorization: Bearer <token>
 ```
 
-The token must be generated from the service-auth secrets configured for this backend and must use:
+The token can be either:
+
+- a bearer token matching one of the configured internal compatibility tokens, such as `INTERNAL_SERVICE_TOKEN`, `SYNC_SERVICE_TOKEN`, or `SYNC_SERVICE_SECRET_TOKEN`, or
+- a service JWT generated from the service-auth secrets configured for this backend with:
 
 ```json
 {
@@ -112,6 +115,60 @@ Status: `202 Accepted`
 ```
 
 If a batch has both valid and invalid sessions, valid sessions are accepted and validation details are returned in `errors`. If no sessions are accepted, the endpoint returns Laravel validation errors with status `422`.
+
+### Get Latest Game-Type Summaries
+
+```http
+GET /api/children/{childId}/summaries/latest
+```
+
+Returns per-game-type analytics rows for CMS recommendations. This endpoint is intentionally a plain JSON array because CMS consumes it directly.
+
+Scores in this response are `0` to `1` ratios, not display percentages. CMS compares `accuracy` and `mastery_score` to `0.7` when deciding whether to recommend content.
+
+#### Path Parameters
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| `childId` | string | yes | Child identifier. |
+
+#### Success Response
+
+```json
+[
+  {
+    "game_type_id": 1,
+    "game_type": "Fidel Tracing",
+    "total_sessions": 2,
+    "total_questions": 20,
+    "correct_answers": 14,
+    "accuracy": 0.7,
+    "time_spent": 300,
+    "consistency": 1,
+    "skill_diversity": 0.2,
+    "mastery_score": 0.69,
+    "last_event_at": "2026-05-11T10:00:00.000000Z"
+  }
+]
+```
+
+If there are no recognized game types for the child, the endpoint returns an empty array:
+
+```json
+[]
+```
+
+#### Game Type IDs
+
+| ID | Name | Common Input Aliases |
+| --- | --- | --- |
+| `1` | Fidel Tracing | `fidel_tracing`, `tracing`, `phonics`, `letter_sounds` |
+| `2` | Fidel Match | `fidel_match`, `voice_to_word`, `matching` |
+| `3` | Pic-to-Word | `pic_to_word`, `picture_to_word`, `sight_words`, `word_recognition` |
+| `4` | Word Builder | `word_builder`, `builder` |
+| `5` | Listen & Fill | `listen_and_fill`, `listen_fill`, `fill_in_the_blank`, `fill_blank` |
+| `6` | Speak Up | `speak_up`, `pronunciation`, `speech` |
+| `7` | Story Quiz | `story_quiz`, `quiz`, `reading_comprehension` |
 
 ### Get Latest Daily Summary
 
@@ -359,7 +416,7 @@ GET /api/ai/children/{childId}/feature-snapshot
 
 Returns a compact feature set derived from the last 10 daily summaries for a child.
 
-This endpoint is protected by service JWT authentication.
+This endpoint is protected by service authentication. It accepts either a service JWT with audience `sync-service` or one of the configured internal compatibility bearer tokens.
 
 #### Headers
 

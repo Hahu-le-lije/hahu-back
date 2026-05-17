@@ -71,7 +71,7 @@ class LearningSessionIngestionService
     {
         $eventId = $this->stringValue($session, ['event_id', 'eventId', 'session_id', 'sessionId', 'id']);
         $childId = $this->stringValue($session, ['child_id', 'childId']);
-        $gameType = $this->stringValue($session, ['game_type', 'gameType', 'type']);
+        $gameType = $this->stringValue($session, ['game_type', 'gameType', 'game_type_id', 'gameTypeId', 'type']);
         $contentId = $this->stringValue($session, ['content_id', 'contentId', 'lesson_id', 'lessonId']);
 
         $errors = [];

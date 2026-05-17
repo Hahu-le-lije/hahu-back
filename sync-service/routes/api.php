@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AnalyticsOverviewController;
 use App\Http\Controllers\Api\DailySummaryController;
 use App\Http\Controllers\Api\LearningSessionController;
+use App\Http\Controllers\Api\LatestSummariesController;
 use App\Http\Controllers\Api\WeeklySummaryController;
 use App\Http\Controllers\Api\AiExportController;
 
@@ -31,13 +32,10 @@ Route::get(
     [AnalyticsOverviewController::class, 'show']
 );
 
-// Old route below, might use for testing later
-/*
 Route::get(
-    '/ai/children/{childId}/feature-snapshot',
-    [AiExportController::class, 'featureSnapshot']
+    '/children/{childId}/summaries/latest',
+    [LatestSummariesController::class, 'show']
 );
-*/
 
 Route::get(
     '/ai/children/{childId}/events',
