@@ -3,18 +3,18 @@
 FROM node:22-alpine AS assets
 WORKDIR /app
 
-COPY cms/package.json cms/package-lock.json ./
+COPY package.json package-lock.json ./
 RUN npm ci
 
-COPY cms/resources ./resources
-COPY cms/public ./public
-COPY cms/vite.config.js ./
+COPY resources ./resources
+COPY public ./public
+COPY vite.config.js ./
 RUN npm run build
 
 FROM composer:2 AS vendor
 WORKDIR /app
 
-COPY cms .
+COPY . .
 RUN composer install \
     --no-dev \
     --no-interaction \
@@ -56,7 +56,7 @@ RUN apt-get update \
 
 COPY --from=vendor /app /var/www/html
 COPY --from=assets /app/public /var/www/html/public
-COPY cms/docker-entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY docker-entrypoint.sh /usr/local/bin/entrypoint.sh
 
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
