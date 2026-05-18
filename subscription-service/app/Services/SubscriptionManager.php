@@ -6,6 +6,8 @@ class SubscriptionManager
     /**
      * Returns the available subscription types and their fees.
      */
+    protected static $minimumSlots = 1;
+    protected static $maximumSlots = 10;
     public static function getTypes(): array
     {
         return [
@@ -24,6 +26,12 @@ class SubscriptionManager
     }
     public static function calculatePlanAmount(string $tire, int $slot): float
     {
+        if ($slot < self::$minimumSlots) {
+            throw new \InvalidArgumentException("Slot must be at least " . self::$minimumSlots . ".");
+        }else if ($slot > self::$maximumSlots) {
+            throw new \InvalidArgumentException("Slot cannot exceed " . self::$maximumSlots . ".");
+        }
+
         $fee = self::getTypes()[$tire] ?? null;
         if ($fee) {
             return $fee * $slot;

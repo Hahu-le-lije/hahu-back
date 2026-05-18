@@ -23,7 +23,6 @@ Route::middleware(ClerkAuthMiddleware::class)->group(function () {
     Route::get('/subscriptions/list', [SubscriptionController::class, 'listUserSubscriptions']); //? order matters
     Route::get('/subscriptions/{subscription}', [SubscriptionController::class, 'getSubscriptionDetails'])->whereNumber('subscription');
 });
-Route::get('/get-subscription-types', [PaymentController::class, 'showPaymentForm'])->name('subscription.types'); //! for debugging, remove later፣ including the controller method 
 
 
 Route::post('/subscriptions/create', [SubscriptionController::class, 'createSubscription'])->name('subscription.create');

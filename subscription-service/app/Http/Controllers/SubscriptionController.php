@@ -95,8 +95,15 @@ class SubscriptionController extends Controller
                 'error' => 'Payment not successfully completed'
             ], 400);
         }
-
-        if ($amount != (SubscriptionManager::calculatePlanAmount($plan_type, $max_slots))) {
+        try {
+            $calculatedAmount = SubscriptionManager::calculatePlanAmount($plan_type, $max_slots);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 'failed',
+                'error' => $th->getMessage()
+            ], 400);
+        }
+        if ($amount != ($calculatedAmount)) {
             return response()->json([
                 'status' => 'failed',
                 'error' => 'Amount mismatch'

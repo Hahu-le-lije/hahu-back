@@ -26,9 +26,18 @@ class PaymentController extends Controller
         $maxSlots = $validatedData['max_slots'];
         $ref = Chapa::generateReference('HahuSub_');
         error_log("generated ref " . $ref);
+        try {
+            $calculatedAmount = SubscriptionManager::calculatePlanAmount($planType, $maxSlots);
+        } catch (\Throwable $th) {
+                return response()->json([
+                    'status' => 'failed',
+                    'error' => $th->getMessage()
+                ], 201);
+            //throw $th;
+        }
         $response = Chapa::initializePayment([
             'tx_ref' => $ref,
-            'amount' => SubscriptionManager::calculatePlanAmount($planType, $maxSlots),
+            'amount' => $calculatedAmount,
             'currency' => 'ETB',
             'callback_url' => route('subscription.create'), //?  use this url for testing "https://from-chapa-payment.free.beeceptor.com"
             // 'return_url' => config('subscriptiontype.return_url'), //! I need to get the return url from the front end team
