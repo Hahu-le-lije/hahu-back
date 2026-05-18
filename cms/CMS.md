@@ -21,9 +21,11 @@ This document describes how the CMS backend (`hahu-back/cms`) and the admin fron
   - `app/Support/ContentPayloadFormatter.php` — normalizes legacy/misspelled payload keys into a consistent `payload.contents` structure. Important: it intentionally maps several legacy forms (e.g., `pronouncation` → `pronunciation`) and unifies voice/image/audio keys.
   - `app/Http/Controllers/SubjectController.php` — per-child subject status API; auto-initializes defaults for missing subjects.
   - `app/Http/Controllers/TaskRecommendationController.php` — recommendation logic and assign endpoint. Recommendation flow:
-    1. Try external sync service (config `services.sync.url` or `SYNC_SERVICE_URL`) GET `/api/children/{child}/summaries/latest`.
+    1. Try external sync service (config `services.sync_service.url` or `SYNC_SERVICE_URL`) GET `/api/children/{child}/summaries/latest`.
     2. Fallback to local `daily_summaries` table if available.
     3. Final fallback: top active content per game type.
+
+- Inter-service communication in CMS is currently limited to Child Service and Sync Service. Subscription Service communication was removed.
 
 ## Database additions
 - New migrations (files added):

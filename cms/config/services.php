@@ -50,10 +50,6 @@ return [
         'url' => env('SYNC_SERVICE_URL', 'http://localhost:8002'),
         'secret_token' => env('SYNC_SERVICE_TOKEN', env('INTERNAL_SERVICE_TOKEN')),
     ],
-    'subscription_service' => [
-        'url' => env('SUBSCRIPTION_SERVICE_URL', 'http://localhost:8003'),
-        'secret_token' => env('SUBSCRIPTION_SERVICE_TOKEN', env('INTERNAL_SERVICE_TOKEN')),
-    ],
     'service_auth' => [
         'cms' => env('CMS_SERVICE_SECRET', 'cms_secret_key'),
     ],

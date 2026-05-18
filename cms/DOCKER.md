@@ -93,7 +93,6 @@ docker-compose -f docker-compose.cms.yml logs -f cms
 |----------|---------|-------------|
 | `CHILD_SERVICE_URL` | `http://child-service:8001` | Child Service URL |
 | `SYNC_SERVICE_URL` | `http://sync-service:8002` | Sync Service URL |
-| `SUBSCRIPTION_SERVICE_URL` | `http://subscription-service:8003` | Subscription Service URL |
 | `INTERNAL_SERVICE_TOKEN` | - | Inter-service authentication token |
 
 ### Authentication

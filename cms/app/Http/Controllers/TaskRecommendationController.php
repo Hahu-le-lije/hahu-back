@@ -6,7 +6,6 @@ use App\Models\AssignedTask;
 use App\Models\Content;
 use App\Services\ChildServiceClient;
 use App\Services\SyncServiceClient;
-use App\Services\SubscriptionServiceClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,16 +16,13 @@ class TaskRecommendationController extends Controller
 {
     protected ChildServiceClient $childServiceClient;
     protected SyncServiceClient $syncServiceClient;
-    protected SubscriptionServiceClient $subscriptionServiceClient;
 
     public function __construct(
         ChildServiceClient $childServiceClient,
-        SyncServiceClient $syncServiceClient,
-        SubscriptionServiceClient $subscriptionServiceClient
+        SyncServiceClient $syncServiceClient
     ) {
         $this->childServiceClient = $childServiceClient;
         $this->syncServiceClient = $syncServiceClient;
-        $this->subscriptionServiceClient = $subscriptionServiceClient;
     }
 
     /**
@@ -46,12 +42,6 @@ class TaskRecommendationController extends Controller
             if (!$this->childServiceClient->verifyParentOwnsChild($childId, $parentId)) {
                 Log::warning("Unauthorized child access attempt: parent {$parentId} tried to access child {$childId}");
                 return response()->json(['error' => 'Child not found or not owned by parent'], 403);
-            }
-
-            // Verify parent has active subscription
-            if (!$this->subscriptionServiceClient->hasActiveSubscription($parentId)) {
-                Log::info("Parent {$parentId} does not have active subscription");
-                return response()->json(['error' => 'No active subscription'], 403);
             }
 
             $recommendations = $this->generateRecommendations($childId);
@@ -80,11 +70,6 @@ class TaskRecommendationController extends Controller
             if (!$this->childServiceClient->verifyParentOwnsChild($childId, $parentId)) {
                 Log::warning("Unauthorized task assignment attempt: parent {$parentId} tried to assign to child {$childId}");
                 return response()->json(['error' => 'Child not found or not owned by parent'], 403);
-            }
-
-            // Verify parent has active subscription
-            if (!$this->subscriptionServiceClient->hasActiveSubscription($parentId)) {
-                return response()->json(['error' => 'No active subscription'], 403);
             }
 
             $validated = $request->validate([

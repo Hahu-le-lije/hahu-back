@@ -5,8 +5,7 @@
 The CMS has been updated with proper service-to-service integration to:
 1. **Verify parent-child relationships** via Child Service
 2. **Get performance recommendations** via Sync Service  
-3. **Validate subscription status** via Subscription Service
-4. **Track task assignments** for downstream services
+3. **Track task assignments** for downstream services
 
 ## Services Integrated
 
@@ -38,30 +37,14 @@ SYNC_SERVICE_URL=http://localhost:8002
 SYNC_SERVICE_TOKEN=<internal-service-token>
 ```
 
-### 3. Subscription Service (`App\Services\SubscriptionServiceClient`)
-**Purpose**: Verify that a parent has an active subscription before allowing feature access.
-
-**Methods**:
-- `hasActiveSubscription(parentId)` - Returns true if parent has active subscription
-- `getSubscriptionTier(parentId)` - Returns tier: 'basic', 'premium', or 'ultimate'
-- `getParentSubscriptions(parentId)` - Get all parent subscriptions
-- `isChildLinkedToSubscription(childId, parentId)` - Verify child-subscription link
-
-**Configuration**:
-```
-SUBSCRIPTION_SERVICE_URL=http://localhost:8003
-SUBSCRIPTION_SERVICE_TOKEN=<internal-service-token>
-```
-
 ## Updated Endpoints
 
 ### GET `/api/children/{child_id}/tasks/recommendations`
 **Changes**:
 - Now requires authentication (Bearer token from Sanctum)
 - Verifies parent owns the child (via Child Service)
-- Checks parent has active subscription (via Subscription Service)
 - Uses Sync Service to get performance data
-- Returns 403 if child not owned or no subscription
+- Returns 403 if child not owned by parent
 - Returns 401 if not authenticated
 
 **Response** (200 OK):
@@ -80,14 +63,13 @@ SUBSCRIPTION_SERVICE_TOKEN=<internal-service-token>
 
 **Errors**:
 - `401` - Not authenticated
-- `403` - Child not owned by parent or no active subscription
+- `403` - Child not owned by parent
 - `500` - Server error during recommendation generation
 
 ### POST `/api/children/{child_id}/tasks/assign`
 **Changes**:
 - Now requires authentication (Bearer token from Sanctum)
 - Verifies parent owns the child (via Child Service)
-- Checks parent has active subscription (via Subscription Service)
 - Logs assignment for Analysis Service consumption
 - Validates content_id exists before creating task
 
@@ -121,7 +103,7 @@ SUBSCRIPTION_SERVICE_TOKEN=<internal-service-token>
 
 **Errors**:
 - `401` - Not authenticated
-- `403` - Child not owned by parent or no active subscription
+- `403` - Child not owned by parent
 - `422` - Validation failed (invalid content_id, missing fields)
 - `500` - Server error during assignment
 
@@ -141,10 +123,6 @@ CHILD_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN}
 # Sync Service
 SYNC_SERVICE_URL=http://localhost:8002
 SYNC_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN}
-
-# Subscription Service
-SUBSCRIPTION_SERVICE_URL=http://localhost:8003
-SUBSCRIPTION_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN}
 ```
 
 ## Error Handling & Fallbacks
@@ -157,12 +135,6 @@ If Sync Service is down:
 
 ### Child Service Unavailable
 If Child Service is down:
-- Return 403 Forbidden (fail secure)
-- Log the error
-- Parent must wait for service recovery
-
-### Subscription Service Unavailable
-If Subscription Service is down:
 - Return 403 Forbidden (fail secure)
 - Log the error
 - Parent must wait for service recovery
@@ -200,16 +172,9 @@ curl -X GET http://localhost/api/children/child_of_other_parent/tasks/recommenda
   -H "Authorization: Bearer <parent_token>"
 ```
 
-### Test Subscription Requirement
-```bash
-# This should fail with 403 if parent has no active subscription
-curl -X GET http://localhost/api/children/child_123/tasks/recommendations \
-  -H "Authorization: Bearer <parent_without_subscription_token>"
-```
-
 ### Test Valid Request
 ```bash
-# This should succeed if parent owns child and has active subscription
+# This should succeed if parent owns child
 curl -X GET http://localhost/api/children/child_123/tasks/recommendations \
   -H "Authorization: Bearer <valid_parent_token>"
 ```
@@ -236,6 +201,6 @@ The service clients are registered in `app/Providers/ServiceClientsProvider.php`
 2. ✅ Distribute `INTERNAL_SERVICE_TOKEN` to all services
 3. ⏳ Test inter-service communication
 4. ⏳ Set up monitoring/alerting for service failures
-5. ⏳ Consider caching parent subscription status (7-day TTL)
+5. ⏳ Consider caching child ownership checks (short TTL)
 6. ⏳ Add OpenAPI documentation for endpoints
 7. ⏳ Implement RabbitMQ task assignment propagation

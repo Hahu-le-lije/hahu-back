@@ -4,7 +4,6 @@ namespace App\Providers;
 
 use App\Services\ChildServiceClient;
 use App\Services\SyncServiceClient;
-use App\Services\SubscriptionServiceClient;
 use Illuminate\Support\ServiceProvider;
 
 class ServiceClientsProvider extends ServiceProvider
@@ -20,10 +19,6 @@ class ServiceClientsProvider extends ServiceProvider
 
         $this->app->singleton(SyncServiceClient::class, function ($app) {
             return new SyncServiceClient();
-        });
-
-        $this->app->singleton(SubscriptionServiceClient::class, function ($app) {
-            return new SubscriptionServiceClient();
         });
     }
 

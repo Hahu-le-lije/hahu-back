@@ -31,21 +31,36 @@ php artisan serve --host=127.0.0.1 --port=8000
 
 ## API Endpoints
 
+### Parent App
+
+- POST `/api/parents/sign-up`
+- GET `/api/parents/me` (requires `clerk.auth`)
+- PUT `/api/parents/update` (requires `clerk.auth`)
+- DELETE `/api/parents/delete` (requires `clerk.auth`)
+
 ### Authentication
 
 - POST `/api/auth/login`
-- POST `/api/auth/logout`
-- GET `/api/auth/user`
+- POST `/api/auth/logout` (requires `auth:sanctum`)
+- GET `/api/auth/user` (requires `auth:sanctum`)
 
-### Public Content Delivery
+### Child App Content Delivery
 
 - GET `/api/content/packs`
 - GET `/api/content/packs/{slug}/manifest`
 - GET `/api/content/packs/{slug}/download`
+- GET `/api/subjects?child_id={childId}`
+- PUT `/api/subjects`
+
+### Parent Tasking
+
+- GET `/api/children/{child_id}/tasks/recommendations` (requires `auth:sanctum`)
+- POST `/api/children/{child_id}/tasks/assign` (requires `auth:sanctum`)
 
 ### Admin CMS
 
 - GET `/api/admin/content-packs`
+- GET `/api/admin/content-packs/{id}`
 - POST `/api/admin/content-packs`
 - PUT `/api/admin/content-packs/{id}`
 - DELETE `/api/admin/content-packs/{id}`
@@ -53,8 +68,11 @@ php artisan serve --host=127.0.0.1 --port=8000
 - POST `/api/admin/content-pack-versions`
 - PUT `/api/admin/content-pack-versions/{id}`
 - DELETE `/api/admin/content-pack-versions/{id}`
+- GET `/api/admin/children`
+- GET `/api/admin/children/{child_id}/assigned-tasks`
 
 ## Notes
 
 - All routes return JSON only.
+- CMS inter-service communication currently targets Child Service and Sync Service only.
 - Admin routes require a valid Sanctum token and the `admin` role.
