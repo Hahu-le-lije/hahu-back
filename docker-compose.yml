@@ -213,9 +213,7 @@ services:
         condition: service_healthy
 
   cms:
-    build:
-      context: .
-      dockerfile: cms/Dockerfile
+    build: "./cms"
     container_name: cms
     restart: always
     environment:

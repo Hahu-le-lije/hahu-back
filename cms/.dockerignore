@@ -11,7 +11,7 @@ node_modules
 vendor
 storage/logs/*
 storage/framework/cache/*
-bootstrap/cache
+bootstrap/cache/*.php
 coverage
 .phpunit.result.cache
 .pest.result.cache
