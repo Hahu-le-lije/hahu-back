@@ -27,8 +27,7 @@ WORKDIR /var/www/html
 
 ENV APP_ENV=production \
     APP_DEBUG=false \
-    LOG_CHANNEL=stderr \
-    PORT=8080
+    LOG_CHANNEL=stderr
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
