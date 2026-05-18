@@ -3,7 +3,7 @@ set -eu
 
 : "${PORT:=8080}"
 : "${LARAVEL_OPTIMIZE:=true}"
-: "${RUN_MIGRATIONS:=true}"
+: "${RUN_MIGRATIONS:=false}"
 
 # Update Apache port configuration
 sed -i "s/^Listen .*/Listen ${PORT}/" /etc/apache2/ports.conf
