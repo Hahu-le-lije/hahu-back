@@ -86,12 +86,11 @@ return [
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DB_URL'),
-            'host' => env('DB_HOST', '127.0.0.1'),
+            // If a socket is provided, pass it directly to host as a path; otherwise fall back to regular host
+            'host' => env('DB_SOCKET') ? env('DB_SOCKET') : env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
-            // Added unix_socket configuration here for Google Cloud SQL proxy connectivity
-            'unix_socket' => env('DB_SOCKET', ''),
-            'database' => env('DB_DATABASE', 'laravel'),
-            'username' => env('DB_USERNAME', 'root'),
+            'database' => env('DB_DATABASE', 'forge'),
+            'username' => env('DB_USERNAME', 'forge'),
             'password' => env('DB_PASSWORD', ''),
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
