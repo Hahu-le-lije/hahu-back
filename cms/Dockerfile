@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-
 FROM node:22-alpine AS assets
 WORKDIR /app
 
@@ -46,6 +44,8 @@ RUN apt-get update \
         pdo_sqlite \
         zip \
     && a2enmod rewrite \
+    && sed -ri -e "s!Listen 80!Listen ${PORT}!g" /etc/apache2/ports.conf \
+    && sed -ri -e "s!:80>!:${PORT}>!g" /etc/apache2/sites-available/*.conf \
     && sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf \
     && printf '%s\n' \
         '<Directory /var/www/html/public>' \
@@ -58,11 +58,14 @@ COPY --from=vendor /app /var/www/html
 COPY --from=assets /app/public /var/www/html/public
 COPY docker-entrypoint.sh /usr/local/bin/entrypoint.sh
 
-RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN mkdir -p storage/framework/views storage/framework/cache bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R ug+rwX storage bootstrap/cache \
+    && chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/health || exit 1
+    CMD curl -f http://localhost:${PORT}/up || exit 1
 
-ENTRYPOINT ["entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["apache2-foreground"]
