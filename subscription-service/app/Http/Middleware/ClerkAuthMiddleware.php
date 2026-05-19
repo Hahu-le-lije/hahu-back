@@ -23,6 +23,7 @@ class ClerkAuthMiddleware
         $token = $request->bearerToken();
 
         if (!$token) {
+            error_log("ClerkAuthMiddleware: No authorization token provided.");
             return response()->json([
                 "status" => "error",
                 'error' => 'No authorization token provided'
@@ -33,11 +34,13 @@ class ClerkAuthMiddleware
             // 1. Get the PEM key from cache or fetch/convert it if not exists
             // We cache it for 24 hours (86400 seconds)
             $pem = Cache::remember('clerk_public_key_pem', 86400, function () {
+                error_log("ClerkAuthMiddleware: Fetching JWKS from Clerk...");
                 $response = Http::withHeaders([
                     'Authorization' => 'Bearer ' . config('services.clerk.secret_key'),
                 ])->get('https://api.clerk.com/v1/jwks');
 
                 if ($response->failed()) {
+                    error_log("ClerkAuthMiddleware: Failed to fetch JWKS from Clerk. Status: " . $response->status());
                     throw new \Exception('Could not fetch JWKS from Clerk');
                 }
 
@@ -49,9 +52,11 @@ class ClerkAuthMiddleware
                 $firstKey = reset($keys);
 
                 if (!$firstKey) {
+                    error_log("ClerkAuthMiddleware: No keys found in Clerk JWKS.");
                     throw new \Exception('No keys found in Clerk JWKS');
                 }
 
+                error_log("ClerkAuthMiddleware: Successfully fetched and converted JWK to PEM.");
                 // Convert JWK to PEM format
                 return (new KeyConverter())->keyToPem($firstKey);
             });
@@ -63,10 +68,11 @@ class ClerkAuthMiddleware
             // Use an identifier that exists if sub is missing, or fail gracefully
 
             if (!$decoded->sub) {
-                error_log("Token missing 'sub' claim. Available claims: " . json_encode($decoded));
+                error_log("ClerkAuthMiddleware: Token missing 'sub' claim. Available claims: " . json_encode($decoded));
                 throw new \Exception('Invalid token: Subject (sub) missing.');
             }
 
+            error_log("ClerkAuthMiddleware: Token successfully decoded for sub: " . $decoded->sub);
 
             // 3. Map the decoded payload to a GenericUser
             // This allows you to use Auth::user() throughout the request
@@ -78,11 +84,13 @@ class ClerkAuthMiddleware
 
             return $next($request);
         } catch (\Firebase\JWT\ExpiredException $e) {
+            error_log("ClerkAuthMiddleware: Token has expired. Error: " . $e->getMessage());
             return response()->json([
                 'status' => 'error',
                 'error' => 'Token has expired'
             ], 401);
         } catch (\Exception $e) {
+            error_log("ClerkAuthMiddleware: Exception during authentication. Error: " . $e->getMessage() . " File: " . $e->getFile() . " Line: " . $e->getLine());
             // Cache::forget('clerk_public_key_pem'); //! should be uncommented for production, this line make the excution to get delayed
 
             return response()->json([
