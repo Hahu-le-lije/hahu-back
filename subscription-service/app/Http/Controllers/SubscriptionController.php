@@ -66,10 +66,9 @@ class SubscriptionController extends Controller
         error_log("SubscriptionController::createSubscription - Validating Chapa response structure.");
         $validator = Validator::make($verify, [
             'status' => 'required|string|in:success',
-            'data.meta.user_id' => 'required|integer',
+            
+            'data.meta.user_id' => 'required|string',
             'data.meta.end_at' => 'required|date',
-
-            // Validating the nested invoices array
             'data.meta.invoices' => 'required|array|min:1',
             'data.meta.invoices.*.key' => 'required|string',
             'data.meta.invoices.*.value' => 'required|string',
@@ -77,7 +76,6 @@ class SubscriptionController extends Controller
             'data.amount' => 'required|numeric',
             'data.currency' => 'required|string',
         ]);
-
         if ($validator->fails()) {
             error_log("SubscriptionController::createSubscription - Chapa response validation failed.");
             return response()->json([
