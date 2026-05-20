@@ -50,8 +50,7 @@ class PaymentController extends Controller
             'tx_ref' => $ref,
             'amount' => $calculatedAmount,
             'currency' => 'ETB',
-            'callback_url' => route('subscription.create'), //?  use this url for testing "https://from-chapa-payment.free.beeceptor.com"
-            // 'return_url' => config('subscriptiontype.return_url'), //! I need to get the return url from the front end team
+            'callback_url' => config('app.base_url') . '/api/subscriptions/create',
             // Customization object
             'customization' => [
                 'title' => 'Hahu Lelije',

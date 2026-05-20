@@ -123,4 +123,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    // Other custom configuration values can be added here as needed
+    'base_url' => env('BASE_URL', 'http://localhost')
 ];
