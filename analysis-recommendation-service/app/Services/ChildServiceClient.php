@@ -31,7 +31,8 @@ class ChildServiceClient
      */
     public function getAuthenticatedChildProfile(string $childId): ?array
     {
-        $response = Http::withToken($this->childServiceToken)->get("{$this->baseUrl}/api/internal/children/{$childId}");
+        $response = Http::withToken($this->childServiceToken)
+            ->get("{$this->baseUrl}/api/internal/children/{$childId}");
 
         if ($response->successful()) {
             $data = $response->json();
@@ -63,7 +64,8 @@ class ChildServiceClient
      */
     public function getChildWithSubscription(string $subscriptionId): ?array
     {
-        $response = Http::get("{$this->baseUrl}/api/internal/subscriptions/children/{$subscriptionId}");
+        $response = Http::withToken($this->childServiceToken)
+            ->get("{$this->baseUrl}/api/internal/subscriptions/children/{$subscriptionId}");
 
         if ($response->successful()) {
             $data = $response->json();

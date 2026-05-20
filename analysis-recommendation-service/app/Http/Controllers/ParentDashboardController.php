@@ -43,7 +43,7 @@ class ParentDashboardController extends Controller
 
     public function getRecommendationHistory(string $childId): JsonResponse
     {
-        //! AUTHENTICATION TOKEN NEEDED
+        
         $childInfo = $this->childService->getAuthenticatedChildProfile($childId);
         if (($childInfo['subscription_tier'] ?? 'Basic') === 'Basic') {
             return response()->json(['message' => 'Upgrade to view history.'], 403);

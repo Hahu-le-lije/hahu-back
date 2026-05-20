@@ -55,7 +55,7 @@ class InternalUserService
         return $mini_response;
     }
 
-    public function getChild($childId)
+    public function getChild(string $childId)
     {
         error_log("InternalUserService::getChild - Method started for Child ID: {$childId}");
         

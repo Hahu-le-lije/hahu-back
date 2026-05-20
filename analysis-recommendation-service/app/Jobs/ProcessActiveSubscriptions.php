@@ -109,7 +109,7 @@ class ProcessActiveSubscriptions implements ShouldQueue
         $now = Carbon::now('Africa/Addis_Ababa');
 
         // Calculate when the next update should happen based on the tier
-        //! if match is Case sensetive it might cause issues.
+        
         $next = match (strtolower($tier)) {
             'ultimate' => $now->copy()->addDay(), // should be case-insens
             'premium' => $now->copy()->addDays(3),
