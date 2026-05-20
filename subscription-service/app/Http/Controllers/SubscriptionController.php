@@ -30,7 +30,6 @@ class SubscriptionController extends Controller
         // 2. Run the validator against the query data array
         $validatedData = Validator::make($queryParams, [
             'trx_ref' => 'required|string',
-            'ref_id' => 'required|string',
             'status' => 'required|string|in:success,pending,failed',
         ])->validate();
         error_log('finishing validation');
