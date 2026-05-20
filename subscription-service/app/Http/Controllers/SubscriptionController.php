@@ -24,12 +24,15 @@ class SubscriptionController extends Controller
     {
         error_log('SubscriptionController::createSubscription - Method started.');
         error_log('Creating subscription with request: ' . json_encode($request->all()));
-        
-        $validatedData = $request->validate([
+
+        $queryParams = $request->query();
+
+        // 2. Run the validator against the query data array
+        $validatedData = Validator::make($queryParams, [
             'trx_ref' => 'required|string',
             'ref_id' => 'required|string',
             'status' => 'required|string|in:success,pending,failed',
-        ]);
+        ])->validate();
         error_log('finishing validation');
 
         // Once validated, you can access the data safely
@@ -52,7 +55,7 @@ class SubscriptionController extends Controller
         error_log("SubscriptionController::createSubscription - Verifying transaction with Chapa.");
         $verify = Chapa::verifyTransaction($transactionReference);
         error_log('verifying transaction with chapa ' . print_r($verify, true));
-        
+
         // 3. Comprehensive Validation of the Chapa API Response
         error_log("SubscriptionController::createSubscription - Validating Chapa response structure.");
         $validator = Validator::make($verify, [
@@ -107,7 +110,7 @@ class SubscriptionController extends Controller
                 'error' => 'Payment not successfully completed'
             ], 400);
         }
-        
+
         try {
             error_log("SubscriptionController::createSubscription - Calculating plan amount for Plan='{$plan_type}' and Slots='{$max_slots}'.");
             $calculatedAmount = SubscriptionManager::calculatePlanAmount($plan_type, $max_slots);
@@ -118,7 +121,7 @@ class SubscriptionController extends Controller
                 'error' => $th->getMessage()
             ], 400);
         }
-        
+
         if ($amount != ($calculatedAmount)) {
             error_log("SubscriptionController::createSubscription - Amount mismatch. Chapa Amount='{$amount}', Calculated Amount='{$calculatedAmount}'. Returning 400.");
             return response()->json([
@@ -219,7 +222,7 @@ class SubscriptionController extends Controller
         $subscriptionOfChild = Subscription::findOrFail($child['subscription_id'])->first();
         $existingPlanType = $subscriptionOfChild->plan_type;
         $newPlanType = $subscription->plan_type;
-        
+
         error_log("SubscriptionController::addChildToSubscription - Comparing fees. Existing Plan: {$existingPlanType}, New Plan: {$newPlanType}");
         $existingFee = SubscriptionManager::getTypes()[$existingPlanType];
         $newFee = SubscriptionManager::getTypes()[$newPlanType];
@@ -246,7 +249,7 @@ class SubscriptionController extends Controller
         error_log("SubscriptionController::addChildToSubscription - Decrementing available slots on new subscription.");
         //? Decrement the available slots in the subscription
         $subscription->decrement('available_slots', 1);
-        
+
         error_log("SubscriptionController::addChildToSubscription - Successfully processed. Returning 200.");
         return response()->json([
             'status' => 'success',
@@ -266,7 +269,7 @@ class SubscriptionController extends Controller
                 'error' => 'Subscription not found'
             ], 404);
         }
-        
+
         error_log("SubscriptionController::getSubscriptionDetails - Validating ownership. Owner ID: {$subscription->owner_id}, Auth ID: " . Auth::id());
         if ($subscription->owner_id != Auth::id()) {// TODO: good to change the error msg for security purpose.
             error_log("SubscriptionController::getSubscriptionDetails - Unauthorized access attempt. Returning 403.");
@@ -275,7 +278,7 @@ class SubscriptionController extends Controller
                 'error' => 'Unauthorized'
             ], 403);
         }
-        
+
         error_log("SubscriptionController::getSubscriptionDetails - Returning subscription details successfully.");
         return response()->json([
             'status' => 'success',
@@ -289,12 +292,12 @@ class SubscriptionController extends Controller
     {
         error_log("SubscriptionController::listUserSubscriptions - Method started.");
         error_log('usr id: ' . Auth::id());
-        
+
         $subscriptions = Subscription::query()
-                ->where('owner_id', Auth::id())
-                ->orderBy('created_at', 'desc')
-                ->limit(5)
-                ->get();
+            ->where('owner_id', Auth::id())
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
 
         error_log("SubscriptionController::listUserSubscriptions - Fetched " . $subscriptions->count() . " subscriptions. Returning 200.");
 

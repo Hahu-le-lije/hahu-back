@@ -25,5 +25,5 @@ Route::middleware(ClerkAuthMiddleware::class)->group(function () {
 });
 
 
-Route::post('/subscriptions/create', [SubscriptionController::class, 'createSubscription'])->name('subscription.create');
+Route::get('/subscriptions/create', [SubscriptionController::class, 'createSubscription'])->name('subscription.create');
 
