@@ -13,6 +13,8 @@ use Exception;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 
+use function Laravel\Prompts\error;
+
 class SubscriptionController extends Controller
 {
 
@@ -26,11 +28,15 @@ class SubscriptionController extends Controller
         error_log('Creating subscription with request: ' . json_encode($request->all()));
 
         $queryParams = $request->query();
+        $gg = json_encode($queryParams);
+        error_log('Extracted query parameters: ' . $gg);
+        error_log('trx_ref: ' . $queryParams['trx_ref'] ?? 'N/A');
+        error_log('status: ' . $queryParams['status'] ?? 'N/A');
+
 
         // 2. Run the validator against the query data array
         $validatedData = Validator::make($queryParams, [
             'trx_ref' => 'required|string',
-            'ref_id' => 'required|string',
             'status' => 'required|string|in:success,pending,failed',
         ])->validate();
         error_log('finishing validation');
