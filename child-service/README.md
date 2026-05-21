@@ -1,6 +1,6 @@
 # Child Service
 
-This Laravel service owns child account creation and management for Hahu La-Ləje.
+This Laravel service owns child account creation and management for Hahu Lä-Ləje.
 
 Note that the broader product uses a family/household account model:
 
