@@ -70,7 +70,11 @@ class ClerkTokenVerifier
 
         $authorizedParties = config('child_service.clerk_authorized_parties', []);
 
-        if ($authorizedParties !== [] && ! in_array($payload['azp'] ?? null, $authorizedParties, true)) {
+        if (
+            isset($payload['azp']) &&
+            $authorizedParties !== [] &&
+            ! in_array($payload['azp'], $authorizedParties, true)
+        ) {
             throw new InvalidArgumentException('Invalid Clerk token authorized party.');
         }
     }
