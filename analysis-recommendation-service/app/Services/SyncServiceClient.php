@@ -18,7 +18,8 @@ class SyncServiceClient
 
     public function getAnalyticsOverview(string $childId): ?array
     {
-        $response = Http::get("{$this->baseUrl}/api/children/{$childId}/analytics-overview");
+        $response = Http::withToken($this->serviceToken)
+            ->get("{$this->baseUrl}/api/children/{$childId}/analytics-overview");
         return $response->successful() ? $response->json() : null;
     }
 
