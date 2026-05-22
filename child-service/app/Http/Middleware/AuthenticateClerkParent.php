@@ -24,7 +24,11 @@ class AuthenticateClerkParent
 
         try {
             $claims = $this->clerk->verify($token);
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            \Log::warning('Clerk token verification failed', [
+                'error' => $e->getMessage(),
+                'token_preview' => substr($token, 0, 20).'...',
+            ]);
             return response()->json(['message' => 'Invalid Clerk token.'], 401);
         }
 
