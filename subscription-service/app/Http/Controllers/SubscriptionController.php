@@ -66,7 +66,7 @@ class SubscriptionController extends Controller
         error_log("SubscriptionController::createSubscription - Validating Chapa response structure.");
         $validator = Validator::make($verify, [
             'status' => 'required|string|in:success',
-            
+
             'data.meta.user_id' => 'required|string',
             'data.meta.end_at' => 'required|date',
             'data.meta.invoices' => 'required|array|min:1',
@@ -194,13 +194,14 @@ class SubscriptionController extends Controller
         error_log("SubscriptionController::addChildToSubscription - Validating child data structure.");
         error_log('child data: ' . print_r($child, true));
         // Validate the response structure
-        if (!isset($child['subscription_id']) || !isset($child['parent_id'])) {
+        if (!isset($child['parent_id'])) {
             error_log("SubscriptionController::addChildToSubscription - Invalid child response data structure. Missing subscription_id or parent_id.");
             return response()->json([
                 'status' => 'failed',
                 'error' => 'Invalid response data structure'
             ], 500);
         }
+
 
         error_log("SubscriptionController::addChildToSubscription - Validating ownership. Sub Owner ID: {$subscription->owner_id}, Child Parent ID: {$child['parent_id']}, Auth ID: " . Auth::id());
         // Validate ownership
@@ -223,28 +224,32 @@ class SubscriptionController extends Controller
         }
 
         error_log("SubscriptionController::addChildToSubscription - Checking existing subscription for Child Sub ID: {$child['subscription_id']}");
-        // Check if the child is already associated with a subscription
-        $subscriptionOfChild = Subscription::findOrFail($child['subscription_id'])->first();
-        $existingPlanType = $subscriptionOfChild->plan_type;
-        $newPlanType = $subscription->plan_type;
+        
+        if (isset($child['subscription_id'])) {
+            $subscriptionOfChild = Subscription::findOrFail($child['subscription_id'])->first();
+            $existingPlanType = $subscriptionOfChild->plan_type;
+            $newPlanType = $subscription->plan_type;
 
-        error_log("SubscriptionController::addChildToSubscription - Comparing fees. Existing Plan: {$existingPlanType}, New Plan: {$newPlanType}");
-        $existingFee = SubscriptionManager::getTypes()[$existingPlanType];
-        $newFee = SubscriptionManager::getTypes()[$newPlanType];
+            error_log("SubscriptionController::addChildToSubscription - Comparing fees. Existing Plan: {$existingPlanType}, New Plan: {$newPlanType}");
+            $existingFee = SubscriptionManager::getTypes()[$existingPlanType];
+            $newFee = SubscriptionManager::getTypes()[$newPlanType];
 
-        if ($subscriptionOfChild->ends_at->isFuture() && $existingFee >= $newFee) {
-            error_log("SubscriptionController::addChildToSubscription - Child already has an active subscription with equal or greater fee. Rejecting.");
-            //? the user is neither have an expired subscription nor they are trying to upgrade to a more expensive plan, so we block the action and return an error message
-            return response()->json([
-                'status' => 'failed',
-                'error' => 'Child is already associated with an active subscription'
-            ], 400);
-        } else if ($subscriptionOfChild->ends_at->isFuture()) {
-            error_log("SubscriptionController::addChildToSubscription - Child upgrading to a better plan. Restoring 1 slot to previous subscription.");
-            $subscriptionOfChild->update([
-                'available_slots' => $subscriptionOfChild->available_slots + 1, //? we increment the available slots of the old subscription to reflect that the child is no longer associated with it
-            ]);
+            if ($subscriptionOfChild->ends_at->isFuture() && $existingFee >= $newFee) {
+                error_log("SubscriptionController::addChildToSubscription - Child already has an active subscription with equal or greater fee. Rejecting.");
+                //? the user is neither have an expired subscription nor they are trying to upgrade to a more expensive plan, so we block the action and return an error message
+                return response()->json([
+                    'status' => 'failed',
+                    'error' => 'Child is already associated with an active subscription'
+                ], 400);
+            } else if ($subscriptionOfChild->ends_at->isFuture()) {
+                error_log("SubscriptionController::addChildToSubscription - Child upgrading to a better plan. Restoring 1 slot to previous subscription.");
+                $subscriptionOfChild->update([
+                    'available_slots' => $subscriptionOfChild->available_slots + 1, //? we increment the available slots of the old subscription to reflect that the child is no longer associated with it
+                ]);
+            }
         }
+        // Check if the child is already associated with a subscription
+
 
         error_log("SubscriptionController::addChildToSubscription - Dispatching LinkChildSubscription job to queue.");
         // Wrap the updates in a database transaction to prevent data corruption 
