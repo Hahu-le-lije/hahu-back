@@ -10,6 +10,7 @@ This document describes how the CMS backend (`hahu-back/cms`) and the admin fron
 - Routes: `routes/api.php` — public and admin routes. Notable additions:
   - `GET /api/subjects?child_id={id}` — get per-child subject status (no auth by default).
   - `PUT /api/subjects` — update per-child subject status.
+  - `GET /api/content/packs`, `GET /api/content/packs/{slug}/manifest`, `GET /api/content/packs/{slug}/download` — content delivery routes protected by shared JWT auth (`aud=cms`, `scope=content:read`).
   - `GET /api/children/{child_id}/tasks/recommendations` — returns recommendations (requires `auth:sanctum`).
   - `POST /api/children/{child_id}/tasks/assign` — parent assigns a task to a child (requires `auth:sanctum`).
   - Admin helpers (protected by `auth:sanctum` + `admin` middleware):
@@ -25,7 +26,9 @@ This document describes how the CMS backend (`hahu-back/cms`) and the admin fron
     2. Fallback to local `daily_summaries` table if available.
     3. Final fallback: top active content per game type.
 
-- Inter-service communication in CMS is currently limited to Child Service and Sync Service. Subscription Service communication was removed.
+- Inter-service communication in CMS includes:
+  - Child Service and Sync Service calls for recommendations/ownership checks.
+  - Shared-JWT content delivery for other backend services that need to read CMS content packs.
 
 ## Database additions
 - New migrations (files added):
@@ -45,9 +48,16 @@ This document describes how the CMS backend (`hahu-back/cms`) and the admin fron
 
 ## Auth and tokens
 - Backend uses Laravel Sanctum for API authentication. The assign/recommendation endpoints are protected with `auth:sanctum` so the server can derive `assigned_by` from `request()->user()`.
+- Content delivery routes use a shared HS256 JWT signed with `JWT_SECRET`. The token must include `aud=cms` and `scope=content:read`.
 - Admin app stores the admin token in `localStorage` (key: `cms_admin_token`) via its login flow — existing login page uses `cmsApi.login` and stores token.
 
 ## Contracts — endpoints
+- Content packs
+  - Request: GET `/api/content/packs` (requires `Authorization: Bearer <shared-jwt>`)
+  - Request: GET `/api/content/packs/{slug}/manifest` (requires the same shared JWT)
+  - Request: GET `/api/content/packs/{slug}/download` (requires the same shared JWT)
+  - Response: active, published content packs only
+
 - Recommendations
   - Request: GET `/api/children/{child_id}/tasks/recommendations` (requires `Authorization: Bearer <token>`)
   - Response: 200 { recommendations: [ { game_type_id, content_id, title, reason } ] }
@@ -76,6 +86,7 @@ php artisan db:seed   # if you want seeded content
 2. Set environment variables:
 - `APP_URL`, `DB_*`, and `SANCTUM_STATEFUL_DOMAINS` / `SESSION_DOMAIN` per Sanctum docs.
 - `SYNC_SERVICE_URL` to enable recommendation via external sync service.
+- `JWT_SECRET` to let other backend services read CMS content using shared JWTs.
 3. Start admin app:
 ```bash
 cd admin-app

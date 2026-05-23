@@ -46,9 +46,9 @@ php artisan serve --host=127.0.0.1 --port=8000
 
 ### Child App Content Delivery
 
-- GET `/api/content/packs`
-- GET `/api/content/packs/{slug}/manifest`
-- GET `/api/content/packs/{slug}/download`
+- GET `/api/content/packs` (requires a shared JWT with `aud=cms` and `scope=content:read`)
+- GET `/api/content/packs/{slug}/manifest` (requires the same shared JWT)
+- GET `/api/content/packs/{slug}/download` (requires the same shared JWT)
 - GET `/api/subjects?child_id={childId}`
 - PUT `/api/subjects`
 
@@ -74,5 +74,7 @@ php artisan serve --host=127.0.0.1 --port=8000
 ## Notes
 
 - All routes return JSON only.
-- CMS inter-service communication currently targets Child Service and Sync Service only.
+- CMS inter-service communication now uses shared HS256 JWTs for content delivery.
+- Services should send `Authorization: Bearer <jwt>` to content endpoints.
+- The JWT must be signed with `JWT_SECRET`, include `aud=cms`, and include `scope=content:read`.
 - Admin routes require a valid Sanctum token and the `admin` role.

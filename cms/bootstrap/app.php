@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'clerk.auth' => VerifyClerkToken::class,
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'jwt.auth' => \App\Http\Middleware\JwtAuthenticate::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

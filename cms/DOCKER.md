@@ -94,6 +94,7 @@ docker-compose -f docker-compose.cms.yml logs -f cms
 | `CHILD_SERVICE_URL` | `http://child-service:8001` | Child Service URL |
 | `SYNC_SERVICE_URL` | `http://sync-service:8002` | Sync Service URL |
 | `INTERNAL_SERVICE_TOKEN` | - | Inter-service authentication token |
+| `JWT_SECRET` | - | Shared JWT secret for CMS content endpoints |
 
 ### Authentication
 | Variable | Default | Description |
@@ -254,6 +255,7 @@ docker-compose -f docker-compose.cms.yml up -d
 - Set `APP_DEBUG=false` in production
 - Use strong `DB_PASSWORD`
 - Rotate `INTERNAL_SERVICE_TOKEN` regularly
+- Rotate `JWT_SECRET` regularly and keep it separate from `INTERNAL_SERVICE_TOKEN`
 - Set `SANCTUM_ENCRYPT_COOKIES=true`
 - Use HTTPS (set `APP_URL=https://...`)
 

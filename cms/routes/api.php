@@ -27,7 +27,7 @@ Route::prefix('auth')->group(function () {
     });
 });
 
-Route::prefix('content')->group(function () {
+Route::prefix('content')->middleware('jwt.auth:cms,content:read')->group(function () {
     Route::get('packs', [ContentPackController::class, 'index'])->name('content.packs.index');
     Route::get('packs/{slug}/manifest', [ContentPackController::class, 'manifest'])->name('content.packs.manifest');
     Route::get('packs/{slug}/download', [ContentPackController::class, 'download'])->name('content.packs.download');

@@ -2,12 +2,32 @@
 
 ## Overview
 
-The CMS has been updated with proper service-to-service integration to:
-1. **Verify parent-child relationships** via Child Service
-2. **Get performance recommendations** via Sync Service  
-3. **Track task assignments** for downstream services
+The CMS currently supports two kinds of inter-service communication:
+1. **Service-to-service reads** for content delivery using shared JWTs
+2. **Recommendation generation** using Sync Service summaries and Child Service ownership checks
 
 ## Services Integrated
+
+### 0. Content Delivery to Other Services
+
+**Purpose**: Let other backend services read CMS content packs through the public content endpoints.
+
+**Authentication**:
+- Bearer JWT signed with the shared `JWT_SECRET`
+- Required claims:
+  - `aud = cms`
+  - `scope` includes `content:read`
+  - `exp` must be valid
+
+**Endpoints**:
+- `GET /api/content/packs`
+- `GET /api/content/packs/{slug}/manifest`
+- `GET /api/content/packs/{slug}/download`
+
+**Behavior**:
+- Invalid or missing tokens return `401`
+- Valid tokens are accepted and the content endpoints return active, published packs
+- Requests are logged when rejected
 
 ### 1. Child Service (`App\Services\ChildServiceClient`)
 **Purpose**: Verify that a parent actually owns a child before allowing task assignments or recommendations.
@@ -141,8 +161,36 @@ If Child Service is down:
 
 ## Service-to-Service Authentication
 
-All internal service calls use bearer tokens configured via:
+### Content endpoints
+
+Other services access CMS content using a shared JWT:
+
+```env
+JWT_SECRET=<shared-secret>
 ```
+
+The token must include:
+
+```json
+{
+  "sub": "sync-service",
+  "aud": "cms",
+  "scope": "content:read",
+  "exp": 9999999999
+}
+```
+
+Send it as:
+
+```http
+Authorization: Bearer <jwt>
+```
+
+### Child and Sync service internal calls
+
+The CMS still calls Child Service and Sync Service with bearer tokens configured via:
+
+```env
 INTERNAL_SERVICE_TOKEN=<shared-secret-between-services>
 ```
 
@@ -198,9 +246,10 @@ The service clients are registered in `app/Providers/ServiceClientsProvider.php`
 ## Next Steps
 
 1. ✅ Configure all service URLs in `.env`
-2. ✅ Distribute `INTERNAL_SERVICE_TOKEN` to all services
-3. ⏳ Test inter-service communication
-4. ⏳ Set up monitoring/alerting for service failures
-5. ⏳ Consider caching child ownership checks (short TTL)
-6. ⏳ Add OpenAPI documentation for endpoints
-7. ⏳ Implement RabbitMQ task assignment propagation
+2. ✅ Distribute `INTERNAL_SERVICE_TOKEN` to Child Service and Sync Service
+3. ✅ Distribute `JWT_SECRET` to services that must read CMS content
+4. ⏳ Test inter-service communication
+5. ⏳ Set up monitoring/alerting for service failures
+6. ⏳ Consider caching child ownership checks (short TTL)
+7. ⏳ Add OpenAPI documentation for endpoints
+8. ⏳ Implement RabbitMQ task assignment propagation
