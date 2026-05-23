@@ -37,7 +37,7 @@ class DatabaseSeeder extends Seeder
         );
 
         $this->call([
-            ContentPackSeeder::class,
+            GameContentSeeder::class,
         ]);
     }
 }
