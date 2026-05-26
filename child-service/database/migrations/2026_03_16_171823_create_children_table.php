@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('username')->unique();
             $table->string('password'); // hashed
 
-            $table->string('avatar')->nullable();
+            $table->text('avatar')->nullable()->change();
             $table->string('subscription_id')->nullable();
             $table->unsignedTinyInteger('age')->nullable();
             $table->date('birthdate')->nullable();
