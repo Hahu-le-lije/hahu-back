@@ -195,7 +195,7 @@ class SubscriptionController extends Controller
         error_log('child data: ' . print_r($child, true));
         // Validate the response structure
         if (!isset($child['parent_id'])) {
-            error_log("SubscriptionController::addChildToSubscription - Invalid child response data structure. Missing subscription_id or parent_id.");
+            error_log("SubscriptionController::addChildToSubscription - Invalid child response data structure. Missing parent_id.");
             return response()->json([
                 'status' => 'failed',
                 'error' => 'Invalid response data structure'
@@ -224,7 +224,7 @@ class SubscriptionController extends Controller
         }
 
         error_log("SubscriptionController::addChildToSubscription - Checking existing subscription for Child Sub ID: {$child['subscription_id']}");
-        
+
         if (isset($child['subscription_id'])) {
             $subscriptionOfChild = Subscription::findOrFail($child['subscription_id'])->first();
             $existingPlanType = $subscriptionOfChild->plan_type;
