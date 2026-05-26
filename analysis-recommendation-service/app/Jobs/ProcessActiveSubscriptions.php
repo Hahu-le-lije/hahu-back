@@ -27,32 +27,36 @@ class ProcessActiveSubscriptions implements ShouldQueue
     {
         $this->subscriptions = $subscriptions;
         $this->queue = 'ars_subscriptions_queue';
-
+        error_log("ProcessActiveSubscriptions@__construct - Initialized with " . count($subscriptions) . " subscriptions");
     }
 
     // Laravel automatically injects these services from the ARS container
     public function handle(SyncServiceClient $sync, ChildServiceClient $childService, AiRecommendationService $ai)
     {
+        error_log("ProcessActiveSubscriptions@handle - Starting batch processing");
         foreach ($this->subscriptions as $sub) {
             $subscriptionId = $sub['subscription_id'];
             $tier = $sub['tier'];
             $now = Carbon::now('Africa/Addis_Ababa');
             try {
-
+                error_log("ProcessActiveSubscriptions@handle - Processing subscription: {$subscriptionId}, Tier: {$tier}");
                 $csResponse = $childService->getChildWithSubscription($subscriptionId);
 
 
                 foreach ($csResponse as $child) {
                     $childId = $child['child_id'];
                     $childName = $child['child_name'];
+                    error_log("ProcessActiveSubscriptions@handle - Checking recommendations for child: {$childId} ({$childName})");
                     [$lastUpdate, $needsUpdate] = $this->recommendationNeeded($tier, $childId);
                     if (!$needsUpdate) {
+                        error_log("ProcessActiveSubscriptions@handle - No update needed for child: {$childId}");
                         continue;
                     }
 
                     $overview = $sync->getAnalyticsOverview($childId);
 
                     if ($tier === 'Ultimate' && empty($overview['daily_summary'])) {
+                        error_log("ProcessActiveSubscriptions@handle - Ultimate tier, no activity - Child: {$childId}");
                         $this->saveRecommendation($childId, $tier, "No activity today! We'll be ready for {$childName} when they log back in.");
                         continue;
                     }
@@ -69,20 +73,25 @@ class ProcessActiveSubscriptions implements ShouldQueue
                         'child_name' => $childName
                     ];
 
+                    error_log("ProcessActiveSubscriptions@handle - Generating recommendation for child: {$childId}");
                     $recommendationText = $ai->generateRecommendation($tier, $data);
                     $this->saveRecommendation($childId, $tier, $recommendationText);
+                    error_log("ProcessActiveSubscriptions@handle - Recommendation saved for child: {$childId}");
                 }
 
             } catch (Exception $e) {
                 // Log and continue so one failing subscription doesn't crash the whole batch
+                error_log("ProcessActiveSubscriptions@handle - Exception for subscription {$subscriptionId}: " . $e->getMessage());
                 Log::error("Failed processing subscription {$subscriptionId}: " . $e->getMessage());
                 continue;
             }
         }
+        error_log("ProcessActiveSubscriptions@handle - Batch processing completed");
     }
 
     private function recommendationNeeded(string $tier, string $childId): array
     {
+        error_log("ProcessActiveSubscriptions@recommendationNeeded - Start - Child: {$childId}, Tier: {$tier}");
         $now = Carbon::now('Africa/Addis_Ababa');
         // Use latest() to get the newest by created_at
         $latestRecommendation = Recommendation::query()
@@ -94,18 +103,23 @@ class ProcessActiveSubscriptions implements ShouldQueue
 
 
         if ($tier === 'Ultimate' && (!$lastUpdate || $lastUpdate->diffInDays($now) >= 1)) {
+            error_log("ProcessActiveSubscriptions@recommendationNeeded - Update needed (Ultimate)");
             return [$lastUpdate, true];
         } elseif ($tier === 'Premium' && (!$lastUpdate || $lastUpdate->diffInDays($now) >= 3)) {
+            error_log("ProcessActiveSubscriptions@recommendationNeeded - Update needed (Premium)");
             return [$lastUpdate, true];
         } elseif ($tier === 'Basic' && (!$lastUpdate || $lastUpdate->diffInDays($now) >= 14)) {
+            error_log("ProcessActiveSubscriptions@recommendationNeeded - Update needed (Basic)");
             return [$lastUpdate, true];
         }
 
+        error_log("ProcessActiveSubscriptions@recommendationNeeded - No update needed");
         return [null, false];
     }
 
     private function saveRecommendation(string $childId, string $tier, string $text)
     {
+        error_log("ProcessActiveSubscriptions@saveRecommendation - Start - Child: {$childId}");
         $now = Carbon::now('Africa/Addis_Ababa');
 
         // Calculate when the next update should happen based on the tier
@@ -122,5 +136,6 @@ class ProcessActiveSubscriptions implements ShouldQueue
             'recommendation_text' => $text,
             'next_update_expected_at' => $next,
         ]);
+        error_log("ProcessActiveSubscriptions@saveRecommendation - Success");
     }
 }

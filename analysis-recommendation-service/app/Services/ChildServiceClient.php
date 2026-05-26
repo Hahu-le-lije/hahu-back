@@ -31,17 +31,20 @@ class ChildServiceClient
      */
     public function getAuthenticatedChildProfile(string $childId): ?array
     {
+        error_log("ChildServiceClient@getAuthenticatedChildProfile - Fetching child: {$childId}");
         $response = Http::withToken($this->childServiceToken)
             ->get("{$this->baseUrl}/api/internal/children/{$childId}");
 
         if ($response->successful()) {
             $data = $response->json();
             if (isset($data['status']) && $data['status'] === 'success' && isset($data['data'])) {
+                error_log("ChildServiceClient@getAuthenticatedChildProfile - Success - Child: {$childId}");
                 return $data['data']; // Return the child profile
             }
-
+            error_log("ChildServiceClient@getAuthenticatedChildProfile - Invalid Response Format - Child: {$childId}");
         }
 
+        error_log("ChildServiceClient@getAuthenticatedChildProfile - Failed - Status: {$response->status()} - Child: {$childId}");
         throw new \Exception("Failed to fetch child profile for child ID: {$childId}. Status: {$response->status()}");
 
         return null; // Token is missing, invalid, or child is unavailable
@@ -64,16 +67,20 @@ class ChildServiceClient
      */
     public function getChildWithSubscription(string $subscriptionId): ?array
     {
+        error_log("ChildServiceClient@getChildWithSubscription - Fetching subscription: {$subscriptionId}");
         $response = Http::withToken($this->childServiceToken)
             ->get("{$this->baseUrl}/api/internal/subscriptions/children/{$subscriptionId}");
 
         if ($response->successful()) {
             $data = $response->json();
             if (isset($data['status']) && $data['status'] === 'success' && isset($data['data'])) {
+                error_log("ChildServiceClient@getChildWithSubscription - Success - Subscription: {$subscriptionId}");
                 return $data['data']; // Return the array of child details
             }
+            error_log("ChildServiceClient@getChildWithSubscription - Invalid Response Format - Subscription: {$subscriptionId}");
         }
 
+        error_log("ChildServiceClient@getChildWithSubscription - Failed - Status: {$response->status()} - Subscription: {$subscriptionId}");
         throw new \Exception("Failed to fetch child with subscription ID: {$subscriptionId}. Status: {$response->status()}");
     }
 }
