@@ -95,6 +95,37 @@ PEM;
         $this->assertMatchesRegularExpression('/^\d{6}$/', $response->json('credentials.pin'));
     }
 
+    public function test_parent_can_create_and_update_child_with_base64_avatar(): void
+    {
+        $avatar = 'data:image/png;base64,'.str_repeat('a', 12000);
+        $updatedAvatar = 'data:image/jpeg;base64,'.str_repeat('b', 14000);
+
+        $create = $this
+            ->withToken($this->clerkToken('user_parent123'))
+            ->postJson('/api/parents/children', [
+                'first_name' => 'Lina',
+                'avatar' => $avatar,
+            ]);
+
+        $create
+            ->assertCreated()
+            ->assertJsonPath('child.avatar', $avatar);
+
+        $child = Child::query()->firstOrFail();
+
+        $this->assertSame($avatar, $child->avatar);
+
+        $this
+            ->withToken($this->clerkToken('user_parent123'))
+            ->patchJson("/api/parents/children/{$child->id}", [
+                'avatar' => $updatedAvatar,
+            ])
+            ->assertOk()
+            ->assertJsonPath('avatar', $updatedAvatar);
+
+        $this->assertSame($updatedAvatar, $child->refresh()->avatar);
+    }
+
     public function test_parent_can_only_see_their_own_children(): void
     {
         Child::query()->create([

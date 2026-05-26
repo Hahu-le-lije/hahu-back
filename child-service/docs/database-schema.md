@@ -30,7 +30,7 @@ erDiagram
         string last_name
         string username UK
         string password "hashed PIN"
-        string avatar
+        text avatar
         string subscription_id "external subscription service id"
         tinyint age
         date birthdate
@@ -69,7 +69,7 @@ Created by `2026_03_16_171823_create_children_table.php`.
 | `last_name` | string | Yes | `null` | none | Optional display/profile name. API validation limits this to 100 characters. |
 | `username` | string | No | none | Unique | Generated child login username. Created from the child's name plus a random suffix. |
 | `password` | string | No | none | none | Hashed child PIN. The plain PIN is only returned on create or credential reset. |
-| `avatar` | string | Yes | `null` | none | Optional avatar URL or avatar identifier. API validation limits this to 2048 characters. |
+| `avatar` | text | Yes | `null` | none | Optional base64-encoded avatar image string. |
 | `subscription_id` | string | Yes | `null` | none | Optional external subscription id. API validation limits this to 100 characters. |
 | `age` | unsigned tinyint | Yes | `null` | none | Optional age. API validation allows 1 through 18. |
 | `birthdate` | date | Yes | `null` | none | Optional birth date. Cast to a Laravel date in `App\Models\Child`. |
