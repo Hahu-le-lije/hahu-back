@@ -23,7 +23,7 @@ class ChildController extends Controller
         $data = $request->validate([
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['nullable', 'string', 'max:100'],
-            'avatar' => ['nullable', 'string', 'max:65536'], // avatar is a base64 encoded small image. 65536 chars should suffice.
+            'avatar' => ['nullable', 'string'],
             'subscription_id' => ['nullable', 'string', 'max:100'],
             'age' => ['nullable', 'integer', 'min:1', 'max:18'],
             'birthdate' => ['nullable', 'date'],
@@ -64,7 +64,7 @@ class ChildController extends Controller
         $data = $request->validate([
             'first_name' => ['sometimes', 'string', 'max:100'],
             'last_name' => ['nullable', 'string', 'max:100'],
-            'avatar' => ['nullable', 'string', 'max:2048'],
+            'avatar' => ['nullable', 'string'],
             'subscription_id' => ['nullable', 'string', 'max:100'],
             'age' => ['nullable', 'integer', 'min:1', 'max:18'],
             'birthdate' => ['nullable', 'date'],

@@ -50,7 +50,7 @@ Child objects are returned without the password hash.
   "first_name": "Lina",
   "last_name": "Reader",
   "username": "lina_reader_a1b2c",
-  "avatar": "https://example.com/avatar.png",
+  "avatar": "data:image/png;base64,...",
   "subscription_id": "sub_123",
   "age": 8,
   "birthdate": "2018-04-12T00:00:00.000000Z",
@@ -236,7 +236,7 @@ Request body:
 | --- | --- | --- | --- |
 | `first_name` | string | Yes | Max 100 characters. |
 | `last_name` | string or null | No | Max 100 characters. |
-| `avatar` | string or null | No | Max 2048 characters. |
+| `avatar` | string or null | No | Base64-encoded image string. |
 | `subscription_id` | string or null | No | Max 100 characters. |
 | `age` | integer or null | No | Minimum 1, maximum 18. |
 | `birthdate` | date or null | No | Any Laravel-parseable date. |
@@ -332,7 +332,7 @@ Request body:
 | --- | --- | --- | --- |
 | `first_name` | string | No | Max 100 characters. |
 | `last_name` | string or null | No | Max 100 characters. |
-| `avatar` | string or null | No | Max 2048 characters. |
+| `avatar` | string or null | No | Base64-encoded image string. |
 | `subscription_id` | string or null | No | Max 100 characters. |
 | `age` | integer or null | No | Minimum 1, maximum 18. |
 | `birthdate` | date or null | No | Any Laravel-parseable date. |
