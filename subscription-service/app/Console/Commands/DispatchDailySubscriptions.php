@@ -23,7 +23,7 @@ class DispatchDailySubscriptions extends Command
             ->chunk(50, function ($subscriptions) {
                 // Dispatch the job to the specific RabbitMQ queue the ARS is listening to
                 ProcessActiveSubscriptions::dispatch($subscriptions->toArray())
-                    ->onCnnection('rabbitmq')
+                    ->onConnection('rabbitmq')
                     ->onQueue('ars_subscriptions_queue');
             });
 
