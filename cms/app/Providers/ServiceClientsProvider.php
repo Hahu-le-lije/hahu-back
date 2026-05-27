@@ -13,20 +13,7 @@ class ServiceClientsProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(ChildServiceClient::class, function ($app) {
-            return new ChildServiceClient();
-        });
-
-        $this->app->singleton(SyncServiceClient::class, function ($app) {
-            return new SyncServiceClient();
-        });
-    }
-
-    /**
-     * Bootstrap services.
-     */
-    public function boot(): void
-    {
-        //
+        $this->app->singleton(ChildServiceClient::class);
+        $this->app->singleton(SyncServiceClient::class);
     }
 }

@@ -14,26 +14,15 @@ class GameContentSeeder extends Seeder
 
     public function run(): void
     {
-        // Create a few sample content packs each targeting a different game type
+        // Create a sample content pack for each known game type, with at least one content item
         $packs = [
-            [
-                'slug' => 'fidel-tracing-pack',
-                'title' => 'Fidel Tracing Pack',
-                'description' => 'Basic tracing activities for fidel characters',
-                'game_type' => 'Fidel Tracing',
-            ],
-            [
-                'slug' => 'voice-to-word-pack',
-                'title' => 'Voice → Word Pack',
-                'description' => 'Short voice prompts to map to words',
-                'game_type' => 'Fidel Match',
-            ],
-            [
-                'slug' => 'picture-to-word-pack',
-                'title' => 'Picture → Word Pack',
-                'description' => 'Images mapped to vocabulary',
-                'game_type' => 'Pic-to-Word',
-            ],
+            ['slug' => 'fidel-tracing-pack', 'title' => 'Fidel Tracing Pack', 'description' => 'Basic tracing activities for fidel characters', 'game_type' => 'Fidel Tracing'],
+            ['slug' => 'voice-to-word-pack', 'title' => 'Voice → Word Pack', 'description' => 'Short voice prompts to map to words', 'game_type' => 'Fidel Match'],
+            ['slug' => 'picture-to-word-pack', 'title' => 'Picture → Word Pack', 'description' => 'Images mapped to vocabulary', 'game_type' => 'Pic-to-Word'],
+            ['slug' => 'word-builder-pack', 'title' => 'Word Builder Pack', 'description' => 'Activities to build words from letters', 'game_type' => 'Word Builder'],
+            ['slug' => 'fill-in-the-blank-pack', 'title' => 'Fill In The Blank Pack', 'description' => 'Cloze exercises and fill-in-the-blank tasks', 'game_type' => 'Listen & Fill'],
+            ['slug' => 'pronunciation-pack', 'title' => 'Pronunciation Pack', 'description' => 'Pronunciation practice activities', 'game_type' => 'Speak Up'],
+            ['slug' => 'story-quiz-pack', 'title' => 'Story Quiz Pack', 'description' => 'Short story comprehension quizzes', 'game_type' => 'Story Quiz'],
         ];
 
         foreach ($packs as $packData) {
@@ -57,27 +46,30 @@ class GameContentSeeder extends Seeder
                 'published_at' => now(),
             ]);
 
-            // simple example contents for the pack — create two content rows each
+            // Map game type name to content.type in the `content` table
             $typesMap = [
                 'Fidel Tracing' => 'fidel_tracing',
                 'Fidel Match' => 'voice_to_word',
                 'Pic-to-Word' => 'picture_to_word',
+                'Word Builder' => 'word_builder',
+                'Listen & Fill' => 'fill_in_the_blank',
+                'Speak Up' => 'pronunciation',
+                'Story Quiz' => 'story_quiz',
             ];
 
             $type = $typesMap[$packData['game_type']] ?? 'word_builder';
 
-            for ($i = 1; $i <= 2; $i++) {
-                Content::create([
-                    'content_pack_version_id' => $version->id,
-                    'type' => $type,
-                    'title' => $pack->title . " — Item {$i}",
-                    'description' => "Sample content item {$i} for {$pack->title}",
-                    'content' => ['example' => "payload {$i}", 'items' => []],
-                    'sequence_order' => $i,
-                    'difficulty' => $i === 1 ? 'easy' : 'medium',
-                    'is_active' => true,
-                ]);
-            }
+            // Create a single representative content item per pack
+            Content::create([
+                'content_pack_version_id' => $version->id,
+                'type' => $type,
+                'title' => $pack->title . ' — Sample Item',
+                'description' => 'Sample content for ' . $pack->title,
+                'content' => ['example' => 'sample payload', 'items' => []],
+                'sequence_order' => 1,
+                'difficulty' => 'easy',
+                'is_active' => true,
+            ]);
 
             // update latest_published_version to the version number
             $pack->latest_published_version = 1;

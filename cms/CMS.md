@@ -10,7 +10,7 @@ This document describes how the CMS backend (`hahu-back/cms`) and the admin fron
 - Routes: `routes/api.php` — public and admin routes. Notable additions:
   - `GET /api/subjects?child_id={id}` — get per-child subject status (no auth by default).
   - `PUT /api/subjects` — update per-child subject status.
-  - `GET /api/content/packs`, `GET /api/content/packs/{slug}/manifest`, `GET /api/content/packs/{slug}/download` — content delivery routes protected by shared JWT auth (`aud=cms`, `scope=content:read`).
+  - `GET /api/content/packs`, `GET /api/content/packs/{slug}/manifest`, `GET /api/content/packs/{slug}/download` — content delivery routes protected by shared JWT auth (signed with `JWT_SECRET` and carrying a subject claim such as `sub` or `user_id`).
   - `GET /api/children/{child_id}/tasks/recommendations` — returns recommendations (requires `auth:sanctum`).
   - `POST /api/children/{child_id}/tasks/assign` — parent assigns a task to a child (requires `auth:sanctum`).
   - Admin helpers (protected by `auth:sanctum` + `admin` middleware):
@@ -48,7 +48,7 @@ This document describes how the CMS backend (`hahu-back/cms`) and the admin fron
 
 ## Auth and tokens
 - Backend uses Laravel Sanctum for API authentication. The assign/recommendation endpoints are protected with `auth:sanctum` so the server can derive `assigned_by` from `request()->user()`.
-- Content delivery routes use a shared HS256 JWT signed with `JWT_SECRET`. The token must include `aud=cms` and `scope=content:read`.
+- Content delivery routes use a shared HS256 JWT signed with `JWT_SECRET`. CMS currently validates the signature and a subject claim (`sub` or `user_id`); optional claims such as `aud` and `scope` are ignored.
 - Admin app stores the admin token in `localStorage` (key: `cms_admin_token`) via its login flow — existing login page uses `cmsApi.login` and stores token.
 
 ## Contracts — endpoints

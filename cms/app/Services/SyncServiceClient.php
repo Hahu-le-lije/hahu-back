@@ -13,7 +13,7 @@ class SyncServiceClient
     public function __construct()
     {
         $this->baseUrl = config('services.sync_service.url', 'http://localhost:8002');
-        $this->secretToken = config('services.sync_service.secret_token', '');
+        $this->secretToken = config('services.service_auth.sync', config('services.sync_service.secret_token', ''));
     }
 
     /**

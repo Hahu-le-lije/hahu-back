@@ -2,89 +2,47 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
-use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\Response;
 
 class JwtAuthenticate
 {
     /**
      * Handle an incoming request.
      */
-    public function handle(Request $request, Closure $next, ?string $audience = null, ?string $requiredScope = null): Response
+    public function handle(Request $request, Closure $next): Response
     {
         $token = $request->bearerToken();
-
         if (! $token) {
-            $this->logRejectedToken($request, 'missing_token');
+            return $this->rejectToken($request, 'missing_token', 'No token provided', 401);
+        }
 
-            return response()->json(['error' => 'No token provided'], 401);
+        $secret = (string) config('auth.jwt_secret', env('JWT_SECRET', ''));
+        if ($secret === '') {
+            return $this->rejectToken($request, 'missing_jwt_secret', 'JWT secret not configured', 500);
         }
 
         try {
-            $secret = (string) config('auth.jwt_secret', env('JWT_SECRET', ''));
+            $jwt = $this->decodeToken($token);
 
-            if ($secret === '') {
-                $this->logRejectedToken($request, 'missing_jwt_secret');
-
-                return response()->json(['error' => 'JWT secret not configured'], 500);
+            if (($jwt['header']['alg'] ?? null) !== 'HS256') {
+                return $this->rejectToken($request, 'invalid_algorithm', 'Invalid token', 401);
             }
 
-            [$header, $payload] = $this->decodeToken($token);
-
-            if (($header['alg'] ?? null) !== 'HS256') {
-                $this->logRejectedToken($request, 'invalid_algorithm');
-
-                return response()->json(['error' => 'Invalid token'], 401);
-            }
-
-            $expectedSignature = $this->sign($this->tokenSigningInput($token), $secret);
+            $expectedSignature = hash_hmac('sha256', $this->tokenSigningInput($token), $secret, true);
             $actualSignature = $this->base64UrlDecode(explode('.', $token)[2] ?? '');
 
             if (! hash_equals($expectedSignature, $actualSignature)) {
-                $this->logRejectedToken($request, 'invalid_signature');
-
-                return response()->json(['error' => 'Invalid token'], 401);
+                return $this->rejectToken($request, 'invalid_signature', 'Invalid token', 401);
             }
 
-            if (! isset($payload['exp']) || (int) $payload['exp'] < time()) {
-                $this->logRejectedToken($request, 'expired_token');
-
-                return response()->json(['error' => 'Token expired'], 401);
-            }
-
-            if ($audience !== null && (string) ($payload['aud'] ?? '') !== $audience) {
-                $this->logRejectedToken($request, 'audience_mismatch', ['expected_aud' => $audience, 'token_aud' => $payload['aud'] ?? null]);
-
-                return response()->json(['error' => 'Invalid token audience'], 401);
-            }
-
-            if ($requiredScope !== null && ! $this->hasScope((string) ($payload['scope'] ?? ''), $requiredScope)) {
-                $this->logRejectedToken($request, 'scope_missing', ['required_scope' => $requiredScope, 'token_scope' => $payload['scope'] ?? null]);
-
-                return response()->json(['error' => 'Insufficient token scope'], 401);
-            }
-
-            $userId = $payload['user_id'] ?? $payload['sub'] ?? null;
-            if (! $userId) {
-                $this->logRejectedToken($request, 'missing_subject');
-
-                return response()->json(['error' => 'Invalid token payload'], 401);
-            }
-
-            $user = new User();
-            $user->id = $userId;
-            $user->name = trim((string) ($payload['first_name'] ?? '') . ' ' . (string) ($payload['last_name'] ?? '')) ?: (string) ($payload['service'] ?? 'ServiceUser');
-
-            Auth::setUser($user);
-
+            Auth::setUser($this->buildUserFromPayload($request, $jwt['payload']));
         } catch (\Throwable $e) {
-            $this->logRejectedToken($request, 'exception', ['message' => $e->getMessage()]);
-
-            return response()->json(['error' => 'Invalid token'], 401);
+            return $this->rejectToken($request, 'exception', 'Invalid token', 401, ['message' => $e->getMessage()]);
         }
 
         return $next($request);
@@ -105,17 +63,31 @@ class JwtAuthenticate
             throw new \RuntimeException('Invalid JWT encoding');
         }
 
-        return [$header, $payload];
+        return [
+            'header' => $header,
+            'payload' => $payload,
+        ];
+    }
+
+    private function buildUserFromPayload(Request $request, array $payload): User
+    {
+        $userId = $payload['user_id'] ?? $payload['sub'] ?? null;
+
+        if (! $userId) {
+            $this->rejectToken($request, 'missing_subject', 'Invalid token payload', 401);
+        }
+
+        $user = new User();
+        $user->id = $userId;
+        $user->name = trim((string) ($payload['first_name'] ?? '') . ' ' . (string) ($payload['last_name'] ?? ''))
+            ?: (string) ($payload['service'] ?? 'ServiceUser');
+
+        return $user;
     }
 
     private function tokenSigningInput(string $token): string
     {
         return implode('.', array_slice(explode('.', $token), 0, 2));
-    }
-
-    private function sign(string $input, string $secret): string
-    {
-        return hash_hmac('sha256', $input, $secret, true);
     }
 
     private function base64UrlDecode(string $data): string
@@ -129,11 +101,11 @@ class JwtAuthenticate
         return base64_decode(strtr($data, '-_', '+/')) ?: '';
     }
 
-    private function hasScope(string $scopeString, string $requiredScope): bool
+    private function rejectToken(Request $request, string $reason, string $message, int $status, array $context = []): Response
     {
-        $scopes = preg_split('/\s+/', trim($scopeString)) ?: [];
+        $this->logRejectedToken($request, $reason, $context);
 
-        return in_array($requiredScope, $scopes, true);
+        return response()->json(['error' => $message], $status);
     }
 
     private function logRejectedToken(Request $request, string $reason, array $context = []): void

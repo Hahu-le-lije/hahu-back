@@ -39,6 +39,16 @@ return [
         'secret_key' => env('CLERK_SECRET_KEY'),
         'frontend_url' => env('FRONTEND_URL'),
     ],
+    'service_auth' => [
+        'child' => env('CHILD_SERVICE_TOKEN', env('INTERNAL_SERVICE_TOKEN')),
+        'sync' => env('SYNC_SERVICE_TOKEN', env('INTERNAL_SERVICE_TOKEN')),
+        'cms' => env('CMS_SERVICE_SECRET', 'cms_secret_key'),
+    ],
+    'internal_service_tokens' => array_values(array_unique(array_filter([
+        env('INTERNAL_SERVICE_TOKEN'),
+        env('CHILD_SERVICE_TOKEN'),
+        env('SYNC_SERVICE_TOKEN'),
+    ]))),
     'parent_service' => [
         'url' => env('PARENT_SERVICE_URL', env('APP_URL', 'http://localhost')),
     ],
@@ -49,9 +59,6 @@ return [
     'sync_service' => [
         'url' => env('SYNC_SERVICE_URL', 'http://localhost:8002'),
         'secret_token' => env('SYNC_SERVICE_TOKEN', env('INTERNAL_SERVICE_TOKEN')),
-    ],
-    'service_auth' => [
-        'cms' => env('CMS_SERVICE_SECRET', 'cms_secret_key'),
     ],
 
 ];

@@ -13,7 +13,7 @@ class ChildServiceClient
     public function __construct()
     {
         $this->baseUrl = config('services.child_service.url', 'http://localhost:8001');
-        $this->secretToken = config('services.child_service.secret_token', '');
+        $this->secretToken = config('services.service_auth.child', config('services.child_service.secret_token', ''));
     }
 
     /**

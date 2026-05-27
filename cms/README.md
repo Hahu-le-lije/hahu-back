@@ -46,7 +46,7 @@ php artisan serve --host=127.0.0.1 --port=8000
 
 ### Child App Content Delivery
 
-- GET `/api/content/packs` (requires a shared JWT with `aud=cms` and `scope=content:read`)
+- GET `/api/content/packs` (requires a shared JWT signed with `JWT_SECRET`)
 - GET `/api/content/packs/{slug}/manifest` (requires the same shared JWT)
 - GET `/api/content/packs/{slug}/download` (requires the same shared JWT)
 - GET `/api/subjects?child_id={childId}`
@@ -76,5 +76,5 @@ php artisan serve --host=127.0.0.1 --port=8000
 - All routes return JSON only.
 - CMS inter-service communication now uses shared HS256 JWTs for content delivery.
 - Services should send `Authorization: Bearer <jwt>` to content endpoints.
-- The JWT must be signed with `JWT_SECRET`, include `aud=cms`, and include `scope=content:read`.
+- The JWT must be signed with `JWT_SECRET` (or the configured fallback secret) and include a valid subject claim such as `sub` or `user_id`.
 - Admin routes require a valid Sanctum token and the `admin` role.

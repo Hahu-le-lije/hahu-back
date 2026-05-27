@@ -14,10 +14,10 @@ The CMS currently supports two kinds of inter-service communication:
 
 **Authentication**:
 - Bearer JWT signed with the shared `JWT_SECRET`
-- Required claims:
-  - `aud = cms`
-  - `scope` includes `content:read`
-  - `exp` must be valid
+- Required payload/signature checks:
+  - HS256 signature must verify with the shared secret
+  - token must include a subject claim (`sub` or `user_id`)
+- Optional claims such as `aud` and `scope` may still be present, but CMS does not require them
 
 **Endpoints**:
 - `GET /api/content/packs`
@@ -38,7 +38,7 @@ The CMS currently supports two kinds of inter-service communication:
 
 **Configuration**:
 ```
-CHILD_SERVICE_URL=http://localhost:8001
+CHILD_SERVICE_URL=http://child-service:8080
 CHILD_SERVICE_TOKEN=<internal-service-token>
 ```
 
@@ -53,7 +53,7 @@ CHILD_SERVICE_TOKEN=<internal-service-token>
 
 **Configuration**:
 ```
-SYNC_SERVICE_URL=http://localhost:8002
+SYNC_SERVICE_URL=http://sync-service:8080
 SYNC_SERVICE_TOKEN=<internal-service-token>
 ```
 
@@ -137,11 +137,11 @@ INTERNAL_SERVICE_TOKEN=your_internal_service_token_here
 CMS_SERVICE_SECRET=cms_secret_key
 
 # Child Service
-CHILD_SERVICE_URL=http://localhost:8001
+CHILD_SERVICE_URL=http://child-service:8080
 CHILD_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN}
 
 # Sync Service
-SYNC_SERVICE_URL=http://localhost:8002
+SYNC_SERVICE_URL=http://sync-service:8080
 SYNC_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN}
 ```
 
@@ -169,14 +169,12 @@ Other services access CMS content using a shared JWT:
 JWT_SECRET=<shared-secret>
 ```
 
-The token must include:
+The token must be signed with the shared secret and include a subject claim:
 
 ```json
 {
   "sub": "sync-service",
-  "aud": "cms",
-  "scope": "content:read",
-  "exp": 9999999999
+  "user_id": "sync-service"
 }
 ```
 
