@@ -14,6 +14,9 @@ RUN npm run build
 FROM composer:2 AS vendor
 WORKDIR /app
 
+RUN apk add --no-cache linux-headers \
+        && docker-php-ext-install sockets
+
 COPY . .
 RUN composer install \
     --no-dev \
@@ -43,6 +46,7 @@ RUN apt-get update \
         pdo_mysql \
         pdo_pgsql \
         pdo_sqlite \
+        sockets \
         zip \
     && a2enmod rewrite \
     && sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf \

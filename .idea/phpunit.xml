@@ -7,12 +7,12 @@
         <option value="$PROJECT_DIR$/subscription-service/tests/Feature" />
         <option value="$PROJECT_DIR$/analysis-recommendation-service/tests/Unit" />
         <option value="$PROJECT_DIR$/analysis-recommendation-service/tests/Feature" />
-        <option value="$PROJECT_DIR$/child-service/tests/Unit" />
-        <option value="$PROJECT_DIR$/child-service/tests/Feature" />
-        <option value="$PROJECT_DIR$/sync-service/tests/Unit" />
-        <option value="$PROJECT_DIR$/sync-service/tests/Feature" />
         <option value="$PROJECT_DIR$/cms/tests/Unit" />
         <option value="$PROJECT_DIR$/cms/tests/Feature" />
+        <option value="$PROJECT_DIR$/sync-service/tests/Unit" />
+        <option value="$PROJECT_DIR$/sync-service/tests/Feature" />
+        <option value="$PROJECT_DIR$/child-service/tests/Unit" />
+        <option value="$PROJECT_DIR$/child-service/tests/Feature" />
       </list>
     </option>
   </component>

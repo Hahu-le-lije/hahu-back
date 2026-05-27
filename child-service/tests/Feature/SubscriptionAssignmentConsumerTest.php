@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Jobs\AssignSubscriptionToChild;
+use App\Jobs\LinkChildSubscription;
 use App\Models\Child;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -51,6 +52,25 @@ class SubscriptionAssignmentConsumerTest extends TestCase
         $this->assertDatabaseHas('children', [
             'id' => $child->id,
             'subscription_id' => 'sub_abc123',
+        ]);
+    }
+
+    public function test_link_child_subscription_job_updates_the_child_subscription_id(): void
+    {
+        $child = Child::query()->create([
+            'parent_id' => 'user_parent123',
+            'first_name' => 'Lina',
+            'username' => 'lina_reader',
+            'password' => '123456',
+            'status' => 'active',
+            'subscription_id' => null,
+        ]);
+
+        (new LinkChildSubscription((string) $child->id, 45))->handle();
+
+        $this->assertDatabaseHas('children', [
+            'id' => $child->id,
+            'subscription_id' => '45',
         ]);
     }
 
