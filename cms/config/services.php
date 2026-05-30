@@ -38,6 +38,10 @@ return [
     'clerk' => [
         'secret_key' => env('CLERK_SECRET_KEY'),
         'frontend_url' => env('FRONTEND_URL'),
+        // these three additions are to test parent functionality
+        'jwks_url' => env('CLERK_JWKS_URL'),
+        'issuer' => env('CLERK_ISSUER'),
+        'jwks_verify' => env('CLERK_JWKS_VERIFY', false),
     ],
     'service_auth' => [
         'child' => env('CHILD_SERVICE_TOKEN', env('INTERNAL_SERVICE_TOKEN')),
