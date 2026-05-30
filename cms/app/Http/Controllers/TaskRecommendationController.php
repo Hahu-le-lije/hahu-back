@@ -32,8 +32,9 @@ class TaskRecommendationController extends Controller
     public function recommendations(Request $request, string $childId): JsonResponse
     {
         try {
-            $parentId = $request->user()?->id;
-            
+            $parent = $request->attributes->get('parent');
+            $parentId = $parent?->clerk_id;
+
             if (!$parentId) {
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
@@ -60,8 +61,9 @@ class TaskRecommendationController extends Controller
     public function assign(Request $request, string $childId): JsonResponse
     {
         try {
-            $parentId = $request->user()?->id;
-            
+            $parent = $request->attributes->get('parent');
+            $parentId = $parent?->clerk_id;
+
             if (!$parentId) {
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
@@ -83,7 +85,7 @@ class TaskRecommendationController extends Controller
                 'content_id' => $validated['content_id'],
                 'game_type_id' => $validated['game_type_id'],
                 'status' => 'pending',
-                'assigned_by' => $parentId,
+                'assigned_by' => $parent->id,
                 'assigned_at' => now(),
                 'reason' => $validated['reason'] ?? null,
             ]);
@@ -109,7 +111,7 @@ class TaskRecommendationController extends Controller
 
         // Try to get summaries from sync service (preferred method)
         $summaries = $this->syncServiceClient->getLatestSummaries($childId);
-        
+
         if ($summaries && is_array($summaries)) {
             foreach ($summaries as $row) {
                 $gameTypeId = (int)($row['game_type_id'] ?? 0);
