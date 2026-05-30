@@ -75,6 +75,7 @@ class JwtAuthenticate
 
         if (! $userId) {
             $this->rejectToken($request, 'missing_subject', 'Invalid token payload', 401);
+            throw new \RuntimeException('Invalid token payload');
         }
 
         $user = new User();
