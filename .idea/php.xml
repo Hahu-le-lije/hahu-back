@@ -494,6 +494,7 @@
       <path value="$PROJECT_DIR$/child-service/vendor/laravel/pint" />
       <path value="$PROJECT_DIR$/child-service/vendor/laravel/serializable-closure" />
       <path value="$PROJECT_DIR$/child-service/vendor/laravel/sail" />
+      <path value="$PROJECT_DIR$/cms/vendor/firebase/php-jwt" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.3" />

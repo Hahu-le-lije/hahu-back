@@ -506,6 +506,7 @@
       <excludeFolder url="file://$MODULE_DIR$/child-service/vendor/vladimir-yuldashev/laravel-queue-rabbitmq" />
       <excludeFolder url="file://$MODULE_DIR$/child-service/vendor/vlucas/phpdotenv" />
       <excludeFolder url="file://$MODULE_DIR$/child-service/vendor/voku/portable-ascii" />
+      <excludeFolder url="file://$MODULE_DIR$/cms/vendor/firebase/php-jwt" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
