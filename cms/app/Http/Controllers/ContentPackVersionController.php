@@ -34,19 +34,6 @@ class ContentPackVersionController extends Controller
         ]);
         $validated['payload'] = ContentPayloadFormatter::normalize($validated['payload']);
         $version = ContentPackVersion::create($validated);
-        // If this version is published, make it the pack's latest published version
-        if (! empty($validated['published_at'])) {
-            try {
-                $pack = \App\Models\ContentPack::find($validated['content_pack_id']);
-                if ($pack) {
-                    $pack->latest_published_version = $version->id;
-                    $pack->save();
-                }
-            } catch (\Throwable $e) {
-                // Don't fail the request just for a best-effort update; log the error
-                \Log::warning('Failed to update latest_published_version', ['error' => $e->getMessage(), 'content_pack_id' => $validated['content_pack_id'], 'version_id' => $version->id]);
-            }
-        }
         return response()->json($version, 201);
     }
 
