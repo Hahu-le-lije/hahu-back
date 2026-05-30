@@ -30,19 +30,19 @@ class JwtAuthenticate
             $jwt = $this->decodeToken($token);
 
             if (($jwt['header']['alg'] ?? null) !== 'HS256') {
-                return $this->rejectToken($request, 'invalid_algorithm', 'Invalid token', 401);
+                return $this->rejectToken($request, 'invalid_algorithm', 'Invalid token alg problem', 401);
             }
 
             $expectedSignature = hash_hmac('sha256', $this->tokenSigningInput($token), $secret, true);
             $actualSignature = $this->base64UrlDecode(explode('.', $token)[2] ?? '');
 
             if (! hash_equals($expectedSignature, $actualSignature)) {
-                return $this->rejectToken($request, 'invalid_signature', 'Invalid token', 401);
+                return $this->rejectToken($request, 'invalid_signature', 'Invalid token signature problem', 401);
             }
 
             Auth::setUser($this->buildUserFromPayload($request, $jwt['payload']));
         } catch (\Throwable $e) {
-            return $this->rejectToken($request, 'exception', 'Invalid token', 401, ['message' => $e->getMessage()]);
+            return $this->rejectToken($request, 'exception', 'Invalid token expection problem', 401, ['message' => $e->getMessage()]);
         }
 
         return $next($request);
