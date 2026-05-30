@@ -40,7 +40,7 @@ Route::prefix('subjects')->group(function () {
 
 // Task recommendations and assignment endpoints
 Route::prefix('children')->group(function () {
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware('clerk.auth')->group(function () {
         Route::get('{child_id}/tasks/recommendations', [\App\Http\Controllers\TaskRecommendationController::class, 'recommendations']);
         Route::post('{child_id}/tasks/assign', [\App\Http\Controllers\TaskRecommendationController::class, 'assign']);
     });
