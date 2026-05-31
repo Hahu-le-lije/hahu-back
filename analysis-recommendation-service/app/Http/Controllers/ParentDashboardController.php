@@ -15,10 +15,11 @@ class ParentDashboardController extends Controller
     protected ChildServiceClient $childService;
     protected SubscriptionServiceClient $subscriptionService;
 
-    public function __construct(SyncServiceClient $syncService, ChildServiceClient $childService)
+    public function __construct(SyncServiceClient $syncService, ChildServiceClient $childService, SubscriptionServiceClient $subscriptionService)
     {
         $this->syncService = $syncService;
         $this->childService = $childService;
+        $this->subscriptionService = $subscriptionService;
     }
 
     public function getLatestRecommendation(string $childId): JsonResponse
