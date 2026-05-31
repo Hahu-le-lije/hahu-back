@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Recommendation;
 use App\Services\ChildServiceClient;
+use App\Services\SubscriptionServiceClient;
 use App\Services\SyncServiceClient;
 use App\Services\UserServiceClient;
 use Illuminate\Http\JsonResponse;
@@ -12,6 +13,7 @@ class ParentDashboardController extends Controller
 {
     protected SyncServiceClient $syncService;
     protected ChildServiceClient $childService;
+    protected SubscriptionServiceClient $subscriptionService;
 
     public function __construct(SyncServiceClient $syncService, ChildServiceClient $childService)
     {
@@ -47,9 +49,29 @@ class ParentDashboardController extends Controller
     public function getRecommendationHistory(string $childId): JsonResponse
     {
         error_log("ParentDashboardController@getRecommendationHistory - Start - Child: {$childId}");
-        
-        $childInfo = $this->childService->getAuthenticatedChildProfile($childId);
-        if (($childInfo['subscription_tier'] ?? 'basic') === 'basic') {
+        $cacheKey = "child_subscription_{$childId}";
+
+        // 1. Try to fetch from cache first
+        $childSubscriptionTier = \Cache::get($cacheKey);
+        // 2. If it's a cache miss, safely call the service
+        if ($childSubscriptionTier === null) {
+            try {
+                $childSubscriptionTier = $this->subscriptionService->getSubscriptionDetails($childId);
+                // 3. Only cache if the specific key exists and there was no error
+                if (isset($childSubscriptionTier['subscription']['plan_type'])) {
+                    // 1800 seconds = 30 minutes (Laravel 5.8+ uses seconds for TTL)
+                    \Cache::put($cacheKey, $childSubscriptionTier['subscription']['plan_type'], 1800);
+                }
+            } catch (\Exception $e) {
+                // Log the failure so you don't fly blind
+                error_log("Failed to retrieve subscription for child {$childId}: " . $e->getMessage());
+
+                // Fallback value so the rest of your execution doesn't break
+                $childSubscriptionTier = null;
+            }
+        }
+
+        if (($childSubscriptionTier ?? 'basic') === 'basic') {
             error_log("ParentDashboardController@getRecommendationHistory - Access denied (basic tier) - Child: {$childId}");
             return response()->json(['message' => 'Upgrade to view history.'], 403);
         }

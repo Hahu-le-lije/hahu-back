@@ -44,5 +44,8 @@ return [
     'child_service' => [
         'url' => env('CHILD_SERVICE_URL', env('APP_URL', 'http://localhost')),
     ],
+    'subscription_service' => [
+      'internal_service_token' => env('SUBSCRIPTION_SERVICE_SECRET_TOKEN'),
+    ],
 
 ];

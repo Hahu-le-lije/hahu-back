@@ -55,5 +55,9 @@ return [
     'service_auth' => [
         'recommendation-service' => env('RECOMMENDATION_SERVICE_SECRET'),
     ],
+    'subscription_service' => [
+        'url' => env('SUBSCRIPTION_SERVICE_URL'),
+        'secret_token' => env('SUBSCRIPTION_SERVICE_SECRET_TOKEN'),
+    ],
 
 ];

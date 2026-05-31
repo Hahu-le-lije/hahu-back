@@ -1,10 +1,11 @@
-<?php   
+<?php
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\SubscriptionController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PaymentController;
 use App\Http\Middleware\ClerkAuthMiddleware;
+use App\Http\Middleware\AuthenticateInternalService;
 use App\Models\Subscription;
 
 use function Pest\Laravel\json;
@@ -23,6 +24,12 @@ Route::middleware(ClerkAuthMiddleware::class)->group(function () {
     Route::get('/subscriptions/list', [SubscriptionController::class, 'listUserSubscriptions']); //? order matters
     Route::get('/subscriptions/{subscription}', [SubscriptionController::class, 'getSubscriptionDetails'])->whereNumber('subscription');
 });
+
+Route::prefix('internal')
+    ->middleware(AuthenticateInternalService::class)
+    ->group(function () {
+        Route::get('/subscriptions/{subscriptionId}', [SubscriptionController::class, 'getSubscriptionDetails'])->whereNumber('subscriptionId');
+    });
 
 
 Route::get('/subscriptions/create', [SubscriptionController::class, 'createSubscription'])->name('subscription.create');
