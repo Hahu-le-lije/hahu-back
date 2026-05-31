@@ -49,8 +49,8 @@ class ParentDashboardController extends Controller
         error_log("ParentDashboardController@getRecommendationHistory - Start - Child: {$childId}");
         
         $childInfo = $this->childService->getAuthenticatedChildProfile($childId);
-        if (($childInfo['subscription_tier'] ?? 'Basic') === 'Basic') {
-            error_log("ParentDashboardController@getRecommendationHistory - Access denied (Basic tier) - Child: {$childId}");
+        if (($childInfo['subscription_tier'] ?? 'basic') === 'basic') {
+            error_log("ParentDashboardController@getRecommendationHistory - Access denied (basic tier) - Child: {$childId}");
             return response()->json(['message' => 'Upgrade to view history.'], 403);
         }
 

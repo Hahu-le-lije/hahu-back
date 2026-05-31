@@ -55,8 +55,8 @@ class ProcessActiveSubscriptions implements ShouldQueue
 
                     $overview = $sync->getAnalyticsOverview($childId);
 
-                    if ($tier === 'Ultimate' && empty($overview['daily_summary'])) {
-                        error_log("ProcessActiveSubscriptions@handle - Ultimate tier, no activity - Child: {$childId}");
+                    if ($tier === 'ultimate' && empty($overview['daily_summary'])) {
+                        error_log("ProcessActiveSubscriptions@handle - ultimate tier, no activity - Child: {$childId}");
                         $this->saveRecommendation($childId, $tier, "No activity today! We'll be ready for {$childName} when they log back in.");
                         continue;
                     }
@@ -103,13 +103,13 @@ class ProcessActiveSubscriptions implements ShouldQueue
 
 
         if ($tier === 'ultimate' && (!$lastUpdate || $lastUpdate->diffInDays($now) >= 1)) {
-            error_log("ProcessActiveSubscriptions@recommendationNeeded - Update needed (Ultimate)");
+            error_log("ProcessActiveSubscriptions@recommendationNeeded - Update needed (ultimate)");
             return [$lastUpdate, true];
         } elseif ($tier === 'premium' && (!$lastUpdate || $lastUpdate->diffInDays($now) >= 3)) {
-            error_log("ProcessActiveSubscriptions@recommendationNeeded - Update needed (Premium)");
+            error_log("ProcessActiveSubscriptions@recommendationNeeded - Update needed (premium)");
             return [$lastUpdate, true];
         } elseif ($tier === 'basic' && (!$lastUpdate || $lastUpdate->diffInDays($now) >= 14)) {
-            error_log("ProcessActiveSubscriptions@recommendationNeeded - Update needed (Basic)");
+            error_log("ProcessActiveSubscriptions@recommendationNeeded - Update needed (basic)");
             return [$lastUpdate, true];
         }
 
@@ -127,7 +127,7 @@ class ProcessActiveSubscriptions implements ShouldQueue
         $next = match (strtolower($tier)) {
             'ultimate' => $now->copy()->addDay(), // should be case-insens
             'premium' => $now->copy()->addDays(3),
-            default => $now->copy()->addDays(14), // Basic
+            default => $now->copy()->addDays(14), // basic
         };
         
         Recommendation::create([
