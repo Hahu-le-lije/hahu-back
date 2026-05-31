@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ContentPack;
 use App\Support\ContentPayloadFormatter;
+use App\Support\ContentSchemaValidator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -186,7 +187,11 @@ class ContentPackController extends Controller
         }
 
         $payload = is_array($version->payload) ? $version->payload : [];
+        $payload = ContentSchemaValidator::validateAndNormalize(
+            (string) $pack->game_type,
+            ContentPayloadFormatter::normalize($payload)
+        );
 
-        return response()->json(ContentPayloadFormatter::normalize($payload));
+        return response()->json($payload);
     }
 }
