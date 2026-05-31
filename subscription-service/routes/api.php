@@ -28,7 +28,7 @@ Route::middleware(ClerkAuthMiddleware::class)->group(function () {
 Route::prefix('internal')
     ->middleware(AuthenticateInternalService::class)
     ->group(function () {
-        Route::get('/subscriptions/{subscriptionId}', [SubscriptionController::class, 'getSubscriptionDetails'])->whereNumber('subscriptionId');
+        Route::get('/subscriptions/{subscriptionId}', [SubscriptionController::class, 'getSubscriptionDetailsForInternalService'])->whereNumber('subscriptionId');
     });
 
 

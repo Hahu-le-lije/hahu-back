@@ -297,7 +297,27 @@ class SubscriptionController extends Controller
             ]
         ], 200);
     }
+    public function getSubscriptionDetailsForInternalService(string $subscription_id)
+    {
+        error_log("SubscriptionController::getSubscriptionDetails - Method started. SubID: {$subscription_id}");
 
+        $subscription = Subscription::query()->find($subscription_id);
+        if (!$subscription) {
+            error_log("SubscriptionController::getSubscriptionDetails - Subscription not found. Returning 404.");
+            return response()->json([
+                'status' => 'failed',
+                'error' => 'Subscription not found'
+            ], 404);
+        }
+
+        error_log("SubscriptionController::getSubscriptionDetails - Returning subscription details successfully.");
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'subscription' => $subscription
+            ]
+        ], 200);
+    }
     public function listUserSubscriptions()
     {
         error_log("SubscriptionController::listUserSubscriptions - Method started.");
