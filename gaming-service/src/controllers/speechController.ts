@@ -41,7 +41,7 @@ export const speechController = async (req: Request, res: Response) => {
 
         const result = await hf.automaticSpeechRecognition({
             model: "openai/whisper-large-v3",
-            inputs: audioBlob,
+            inputs: audioFile.buffer,
             parameters: {
                 language: "am",
             },
