@@ -30,8 +30,8 @@ export const speechController = async (req: Request, res: Response) => {
             mimeType === "audio/m4a" ||
             mimeType === "audio/x-m4a"
         ) {
-            console.log("Converting MIME type to audio/mp4");
-            mimeType = "audio/mp4";
+            console.log("Converting MIME type to audio/wav");
+            mimeType = "audio/wav";
         }
 
         const audioBlob = new Blob(
