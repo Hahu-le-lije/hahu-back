@@ -102,13 +102,13 @@ class ProcessActiveSubscriptions implements ShouldQueue
         $lastUpdate = $latestRecommendation?->created_at; // Use created_at instead
 
 
-        if ($tier === 'Ultimate' && (!$lastUpdate || $lastUpdate->diffInDays($now) >= 1)) {
+        if ($tier === 'ultimate' && (!$lastUpdate || $lastUpdate->diffInDays($now) >= 1)) {
             error_log("ProcessActiveSubscriptions@recommendationNeeded - Update needed (Ultimate)");
             return [$lastUpdate, true];
-        } elseif ($tier === 'Premium' && (!$lastUpdate || $lastUpdate->diffInDays($now) >= 3)) {
+        } elseif ($tier === 'premium' && (!$lastUpdate || $lastUpdate->diffInDays($now) >= 3)) {
             error_log("ProcessActiveSubscriptions@recommendationNeeded - Update needed (Premium)");
             return [$lastUpdate, true];
-        } elseif ($tier === 'Basic' && (!$lastUpdate || $lastUpdate->diffInDays($now) >= 14)) {
+        } elseif ($tier === 'basic' && (!$lastUpdate || $lastUpdate->diffInDays($now) >= 14)) {
             error_log("ProcessActiveSubscriptions@recommendationNeeded - Update needed (Basic)");
             return [$lastUpdate, true];
         }
