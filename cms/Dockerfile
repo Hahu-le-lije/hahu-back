@@ -32,12 +32,15 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         curl \
         libicu-dev \
+        libonig-dev \
         libpq-dev \
-        libzip-dev \
         libsqlite3-dev \
+        libzip-dev \
         unzip \
     && docker-php-ext-install \
+        bcmath \
         intl \
+        mbstring \
         opcache \
         pdo_mysql \
         pdo_pgsql \
