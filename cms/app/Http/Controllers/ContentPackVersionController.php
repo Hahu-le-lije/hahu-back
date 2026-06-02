@@ -36,10 +36,17 @@ class ContentPackVersionController extends Controller
         ]);
 
         $contentPack = ContentPack::query()->findOrFail($validated['content_pack_id']);
+        
+        // Normalize and Validate payload
         $validated['payload'] = ContentSchemaValidator::validateAndNormalize(
             (string) $contentPack->game_type,
             ContentPayloadFormatter::normalize($validated['payload'])
         );
+
+        // FIX: If published_at is null, set it to current time so it becomes visible to the API
+        if (empty($validated['published_at'])) {
+            $validated['published_at'] = now();
+        }
 
         $version = ContentPackVersion::create($validated);
         return response()->json($version, 201);
@@ -57,12 +64,14 @@ class ContentPackVersionController extends Controller
             'min_app_version' => 'sometimes|required|string',
             'published_at' => 'nullable|date',
         ]);
+
         if (isset($validated['payload']) && is_array($validated['payload'])) {
             $validated['payload'] = ContentSchemaValidator::validateAndNormalize(
                 (string) $version->contentPack?->game_type,
                 ContentPayloadFormatter::normalize($validated['payload'])
             );
         }
+
         $version->update($validated);
         return response()->json($version);
     }
