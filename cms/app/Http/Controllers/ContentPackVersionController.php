@@ -43,26 +43,34 @@ class ContentPackVersionController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        // Ensure all fields from your frontend are accounted for
         $validated = $request->validate([
             'content_pack_id' => 'required|exists:content_packs,id',
             'version'         => 'required|string',
             'payload'         => 'required|array',
+            'checksum'        => 'required|string',
+            'min_app_version' => 'nullable|string',
+            'published_at'    => 'nullable|date',
+            'size_bytes'      => 'nullable|integer',
         ]);
 
         $payload = $request->input('payload');
-        $gameType = $payload['game_type'] ?? 'default';
-
+        $gameType = $payload[0]['game_type'] ?? 'default'; // Note: Your payload is an array here
+        
         $version = ContentPackVersion::create([
             'content_pack_id' => $validated['content_pack_id'],
             'version'         => $validated['version'],
-            'meta'            => $payload['meta'] ?? [],
+            'checksum'        => $validated['checksum'],
+            'meta'            => [
+                'min_app_version' => $request->input('min_app_version'),
+                'size_bytes'      => $request->input('size_bytes'),
+            ],
             'game_type'       => $gameType,
-            'content'         => $this->normalizePayload($payload, $gameType),
+            'content'         => $this->normalizePayload($payload[0], $gameType),
         ]);
 
         return response()->json(['message' => 'Saved successfully', 'id' => $version->id], 201);
     }
-
     public function show($id): JsonResponse
     {
         $version = ContentPackVersion::findOrFail($id);
@@ -94,23 +102,35 @@ class ContentPackVersionController extends Controller
     {
         $version = ContentPackVersion::findOrFail($id);
 
-        $validated = $request->validate([
-            'version'      => 'sometimes|required|string|max:255',
-            'payload'      => 'sometimes|required|array',
-            'published_at' => 'nullable|date',
+        $request->validate([
+            'version'         => 'sometimes|required|string|max:255',
+            'payload'         => 'sometimes|required|array',
+            'checksum'        => 'sometimes|required|string',
+            'min_app_version' => 'nullable|string',
+            'size_bytes'      => 'nullable|integer',
         ]);
 
         if ($request->has('payload')) {
             $payload = $request->input('payload');
-            $gameType = $payload['game_type'] ?? $version->game_type;
+            // Use [0] because your payload is an array
+            $gameType = $payload[0]['game_type'] ?? $version->game_type;
 
-            // Apply strict normalization before saving to the DB
-            $version->content   = $this->normalizePayload($payload, $gameType);
+            $version->content   = $this->normalizePayload($payload[0], $gameType);
             $version->game_type = $gameType;
-            $version->meta      = $payload['meta'] ?? $version->meta;
+            
+            // Update meta with new values if provided
+            $version->meta = [
+                'min_app_version' => $request->input('min_app_version', $version->meta['min_app_version'] ?? null),
+                'size_bytes'      => $request->input('size_bytes', $version->meta['size_bytes'] ?? null),
+            ];
         }
 
-        $version->update($request->except(['payload', 'game_type']));
+        // Accept checksum from frontend if provided, otherwise keep existing
+        if ($request->has('checksum')) {
+            $version->checksum = $request->input('checksum');
+        }
+
+        $version->save();
         
         return response()->json(['message' => 'Updated successfully', 'version' => $version]);
     }
