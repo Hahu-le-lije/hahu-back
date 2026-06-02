@@ -22,7 +22,6 @@ class ContentPackVersionController extends Controller
         return response()->json($versions);
     }
 
-    // Create a new version
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -35,21 +34,27 @@ class ContentPackVersionController extends Controller
             'published_at' => 'nullable|date',
         ]);
 
-        $contentPack = ContentPack::query()->findOrFail($validated['content_pack_id']);
-        
-        // Normalize and Validate payload
-        $validated['payload'] = ContentSchemaValidator::validateAndNormalize(
-            (string) $contentPack->game_type,
-            ContentPayloadFormatter::normalize($validated['payload'])
-        );
-
-        // FIX: If published_at is null, set it to current time so it becomes visible to the API
         if (empty($validated['published_at'])) {
             $validated['published_at'] = now();
         }
 
-        $version = ContentPackVersion::create($validated);
-        return response()->json($version, 201);
+        // Wrap in a transaction so if content save fails, version isn't created
+        return \DB::transaction(function () use ($validated) {
+            $version = ContentPackVersion::create($validated);
+
+            foreach ($validated['payload'] as $index => $itemData) {
+                \App\Models\Content::create([
+                    'content_pack_version_id' => $version->id,
+                    'type' => $itemData['type'] ?? 'default',
+                    'title' => $itemData['title'] ?? 'Untitled',
+                    'content' => $itemData['content'] ?? [],
+                    'sequence_order' => $index,
+                    'is_active' => true,
+                ]);
+            }
+
+            return response()->json($version, 201);
+        });
     }
 
     // Update a version

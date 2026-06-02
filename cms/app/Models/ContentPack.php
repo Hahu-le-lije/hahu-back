@@ -31,6 +31,11 @@ class ContentPack extends Model
         return $this->hasMany(ContentPackVersion::class);
     }
 
+    public function contents(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(Content::class, ContentPackVersion::class);
+    }
+
     public function latestPublishedVersion(): HasOne
     {
         return $this->hasOne(ContentPackVersion::class)

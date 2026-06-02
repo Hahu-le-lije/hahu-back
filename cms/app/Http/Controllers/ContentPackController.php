@@ -183,15 +183,24 @@ class ContentPackController extends Controller
         $version = $pack->latestPublishedVersion;
 
         if (! $version) {
-            abort(404, 'No published version found for this content pack.');
+            abort(404, 'No published version found.');
         }
 
-        $payload = is_array($version->payload) ? $version->payload : [];
-        $payload = ContentSchemaValidator::validateAndNormalize(
-            (string) $pack->game_type,
-            ContentPayloadFormatter::normalize($payload)
-        );
+        // QUERY THE CONTENT TABLE INSTEAD OF VERSION PAYLOAD
+        $contentItems = \App\Models\Content::where('content_pack_version_id', $version->id)
+            ->active()
+            ->ordered()
+            ->get();
 
-        return response()->json($payload);
+        // Transform into the structure your app expects
+        $data = $contentItems->map(fn($item) => [
+            'type' => $item->type,
+            'title' => $item->title,
+            'description' => $item->description,
+            'content' => $item->content,
+            'difficulty' => $item->difficulty,
+        ]);
+
+        return response()->json($data);
     }
 }
