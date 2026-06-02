@@ -26,22 +26,17 @@ class ContentPackVersionController extends Controller
      */
     private function normalizePayload(array $payload, string $gameType): array
     {
-        // Use the null coalescing operator to avoid "Undefined index" errors
-        return match ($gameType) {
-            'story_quiz' => $payload['content']['stories'] ?? ($payload['stories'] ?? []),
-            
-            'fidel_tracing' => $payload['fidel_tracing']['levels'] ?? [],
-            
-            'word_builder', 
-            'voice_to_word', 
-            'fill_in_the_blank', 
-            'picture_to_word' => $payload['content']['levels'] ?? [],
-            
-            default => $payload['content']['levels'] ?? ($payload['content'] ?? [])
+        $data = match ($gameType) {
+            'story_quiz' => $payload['content']['stories'] ?? ($payload['stories'] ?? null),
+            'fidel_tracing' => $payload['fidel_tracing']['levels'] ?? null,
+            'word_builder', 'voice_to_word', 'fill_in_the_blank', 'picture_to_word' => $payload['content']['levels'] ?? null,
+            default => $payload['content']['levels'] ?? ($payload['content'] ?? null)
         };
+
+        return $data ?? [];
     }
 
-   public function store(Request $request): JsonResponse
+    public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'content_pack_id' => 'required|exists:content_packs,id',
@@ -54,26 +49,30 @@ class ContentPackVersionController extends Controller
         ]);
 
         $payload = $request->input('payload');
-        // Ensure $payload is not empty before accessing index 0
         if (empty($payload)) {
             return response()->json(['message' => 'Payload is empty'], 422);
         }
 
         $gameType = $payload[0]['game_type'] ?? 'default';
-        
-        $version = ContentPackVersion::create([
-            'content_pack_id' => $validated['content_pack_id'],
-            'version'         => $validated['version'],
-            'checksum'        => $validated['checksum'],
-            'meta'            => [
-                'min_app_version' => $request->input('min_app_version'),
-                'size_bytes'      => $request->input('size_bytes') ?? 0, 
-            ],
-            'game_type'       => $gameType,
-            'content'         => $this->normalizePayload($payload[0], $gameType),
-        ]);
 
-        return response()->json(['message' => 'Saved successfully', 'id' => $version->id], 201);
+        // Use updateOrCreate to prevent the Unique Constraint Violation
+        $version = ContentPackVersion::updateOrCreate(
+            [
+                'content_pack_id' => $validated['content_pack_id'],
+                'version'         => $validated['version'],
+            ],
+            [
+                'checksum'  => $validated['checksum'],
+                'meta'      => [
+                    'min_app_version' => $request->input('min_app_version'),
+                    'size_bytes'      => $request->input('size_bytes') ?? 0, 
+                ],
+                'game_type' => $gameType,
+                'content'   => $this->normalizePayload($payload[0], $gameType),
+            ]
+        );
+
+        return response()->json(['message' => 'Saved successfully', 'id' => $version->id], 200);
     }
 
     public function update(Request $request, $id): JsonResponse
