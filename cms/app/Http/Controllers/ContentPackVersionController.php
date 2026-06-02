@@ -41,9 +41,8 @@ class ContentPackVersionController extends Controller
         };
     }
 
-    public function store(Request $request): JsonResponse
+   public function store(Request $request): JsonResponse
     {
-        // Ensure all fields from your frontend are accounted for
         $validated = $request->validate([
             'content_pack_id' => 'required|exists:content_packs,id',
             'version'         => 'required|string',
@@ -51,11 +50,11 @@ class ContentPackVersionController extends Controller
             'checksum'        => 'required|string',
             'min_app_version' => 'nullable|string',
             'published_at'    => 'nullable|date',
-            'size_bytes'      => 'nullable|integer',
+            'size_bytes'      => 'nullable|integer', // Changed to nullable here too
         ]);
 
         $payload = $request->input('payload');
-        $gameType = $payload[0]['game_type'] ?? 'default'; // Note: Your payload is an array here
+        $gameType = $payload[0]['game_type'] ?? 'default';
         
         $version = ContentPackVersion::create([
             'content_pack_id' => $validated['content_pack_id'],
@@ -63,39 +62,14 @@ class ContentPackVersionController extends Controller
             'checksum'        => $validated['checksum'],
             'meta'            => [
                 'min_app_version' => $request->input('min_app_version'),
-                'size_bytes'      => $request->input('size_bytes'),
+                // Use ?? 0 as a safe fallback if size_bytes is missing
+                'size_bytes'      => $request->input('size_bytes') ?? 0, 
             ],
             'game_type'       => $gameType,
             'content'         => $this->normalizePayload($payload[0], $gameType),
         ]);
 
         return response()->json(['message' => 'Saved successfully', 'id' => $version->id], 201);
-    }
-    public function show($id): JsonResponse
-    {
-        $version = ContentPackVersion::findOrFail($id);
-
-        $response = [
-            'meta'           => $version->meta,
-            'schema_version' => 2,
-            'game_type'      => $version->game_type,
-        ];
-
-        // Reconstruct the structure for the mobile app
-        switch ($version->game_type) {
-            case 'story_quiz':
-                $response['stories'] = $version->content;
-                break;
-            case 'fidel_tracing':
-                $response['fidel_tracing'] = ['levels' => $version->content];
-                break;
-            default:
-                // This covers all formats that use {"content": {"levels": ...}}
-                $response['content'] = ['levels' => $version->content];
-                break;
-        }
-
-        return response()->json($response);
     }
 
     public function update(Request $request, $id): JsonResponse

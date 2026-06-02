@@ -14,14 +14,15 @@ class ContentPackVersion extends Model
         'content_pack_id',
         'version',
         'checksum',
-        'size_bytes',
-        'payload',
-        'min_app_version',
+        'meta',        // Ensure this is here
+        'game_type',   // Ensure this is here
+        'content',     // Ensure this is here
         'published_at',
     ];
 
     protected $casts = [
-        'payload' => 'array',
+        'content'      => 'array', // Use 'content' instead of 'payload'
+        'meta'         => 'array', // Cast meta as array
         'published_at' => 'datetime',
     ];
 
