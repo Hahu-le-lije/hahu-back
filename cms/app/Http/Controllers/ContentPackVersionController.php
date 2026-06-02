@@ -28,7 +28,7 @@ class ContentPackVersionController extends Controller
     {
         // Use the null coalescing operator to avoid "Undefined index" errors
         return match ($gameType) {
-            'story_quiz' => $payload['stories'] ?? []$payload['stories'] ?? [],
+            'story_quiz' => $payload['content']['stories'] ?? ($payload['stories'] ?? []),
             
             'fidel_tracing' => $payload['fidel_tracing']['levels'] ?? [],
             
@@ -50,10 +50,15 @@ class ContentPackVersionController extends Controller
             'checksum'        => 'required|string',
             'min_app_version' => 'nullable|string',
             'published_at'    => 'nullable|date',
-            'size_bytes'      => 'nullable|integer', // Changed to nullable here too
+            'size_bytes'      => 'nullable|integer',
         ]);
 
         $payload = $request->input('payload');
+        // Ensure $payload is not empty before accessing index 0
+        if (empty($payload)) {
+            return response()->json(['message' => 'Payload is empty'], 422);
+        }
+
         $gameType = $payload[0]['game_type'] ?? 'default';
         
         $version = ContentPackVersion::create([
@@ -62,7 +67,6 @@ class ContentPackVersionController extends Controller
             'checksum'        => $validated['checksum'],
             'meta'            => [
                 'min_app_version' => $request->input('min_app_version'),
-                // Use ?? 0 as a safe fallback if size_bytes is missing
                 'size_bytes'      => $request->input('size_bytes') ?? 0, 
             ],
             'game_type'       => $gameType,
