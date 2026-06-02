@@ -28,7 +28,7 @@ class ContentPackVersionController extends Controller
     {
         // Use the null coalescing operator to avoid "Undefined index" errors
         return match ($gameType) {
-            'story_quiz' => $payload['stories'] ?? [],
+            'story_quiz' => $payload['stories'] ?? []$payload['stories'] ?? [],
             
             'fidel_tracing' => $payload['fidel_tracing']['levels'] ?? [],
             
