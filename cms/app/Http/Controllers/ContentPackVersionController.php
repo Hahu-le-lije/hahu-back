@@ -26,15 +26,18 @@ class ContentPackVersionController extends Controller
      */
     private function normalizePayload(array $payload, string $gameType): array
     {
+        // Use the null coalescing operator to avoid "Undefined index" errors
         return match ($gameType) {
-            'story_quiz'        => $payload['stories'],
-            'fidel_tracing'     => $payload['fidel_tracing']['levels'],
-            // Grouping common content-based formats
+            'story_quiz' => $payload['stories'] ?? [],
+            
+            'fidel_tracing' => $payload['fidel_tracing']['levels'] ?? [],
+            
             'word_builder', 
             'voice_to_word', 
             'fill_in_the_blank', 
-            'picture_to_word'   => $payload['content']['levels'],
-            default             => $payload['content']['levels'] ?? $payload['content']
+            'picture_to_word' => $payload['content']['levels'] ?? [],
+            
+            default => $payload['content']['levels'] ?? ($payload['content'] ?? [])
         };
     }
 
