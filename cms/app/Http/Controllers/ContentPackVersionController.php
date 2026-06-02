@@ -4,10 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\ContentPack;
 use App\Models\ContentPackVersion;
-use App\Support\ContentPayloadFormatter;
-use App\Support\ContentSchemaValidator;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\Rule;
 
 class ContentPackVersionController extends Controller
 {
@@ -22,66 +21,97 @@ class ContentPackVersionController extends Controller
         return response()->json($versions);
     }
 
+    /**
+     * Normalizes incoming payload to store only the core data in the DB.
+     */
+    private function normalizePayload(array $payload, string $gameType): array
+    {
+        return match ($gameType) {
+            'story_quiz'        => $payload['stories'],
+            'fidel_tracing'     => $payload['fidel_tracing']['levels'],
+            // Grouping common content-based formats
+            'word_builder', 
+            'voice_to_word', 
+            'fill_in_the_blank', 
+            'picture_to_word'   => $payload['content']['levels'],
+            default             => $payload['content']['levels'] ?? $payload['content']
+        };
+    }
+
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'content_pack_id' => 'required|exists:content_packs,id',
-            'version' => 'required|string|max:255',
-            'checksum' => 'required|string',
-            'size_bytes' => 'required|integer',
-            'payload' => 'required|array',
-            'min_app_version' => 'required|string',
-            'published_at' => 'nullable|date',
+            'version'         => 'required|string',
+            'payload'         => 'required|array',
         ]);
 
-        if (empty($validated['published_at'])) {
-            $validated['published_at'] = now();
-        }
+        $payload = $request->input('payload');
+        $gameType = $payload['game_type'] ?? 'default';
 
-        // Wrap in a transaction so if content save fails, version isn't created
-        return \DB::transaction(function () use ($validated) {
-            $version = ContentPackVersion::create($validated);
+        $version = ContentPackVersion::create([
+            'content_pack_id' => $validated['content_pack_id'],
+            'version'         => $validated['version'],
+            'meta'            => $payload['meta'] ?? [],
+            'game_type'       => $gameType,
+            'content'         => $this->normalizePayload($payload, $gameType),
+        ]);
 
-            foreach ($validated['payload'] as $index => $itemData) {
-                \App\Models\Content::create([
-                    'content_pack_version_id' => $version->id,
-                    'type' => $itemData['type'] ?? 'default',
-                    'title' => $itemData['title'] ?? 'Untitled',
-                    'content' => $itemData['content'] ?? [],
-                    'sequence_order' => $index,
-                    'is_active' => true,
-                ]);
-            }
-
-            return response()->json($version, 201);
-        });
+        return response()->json(['message' => 'Saved successfully', 'id' => $version->id], 201);
     }
 
-    // Update a version
+    public function show($id): JsonResponse
+    {
+        $version = ContentPackVersion::findOrFail($id);
+
+        $response = [
+            'meta'           => $version->meta,
+            'schema_version' => 2,
+            'game_type'      => $version->game_type,
+        ];
+
+        // Reconstruct the structure for the mobile app
+        switch ($version->game_type) {
+            case 'story_quiz':
+                $response['stories'] = $version->content;
+                break;
+            case 'fidel_tracing':
+                $response['fidel_tracing'] = ['levels' => $version->content];
+                break;
+            default:
+                // This covers all formats that use {"content": {"levels": ...}}
+                $response['content'] = ['levels' => $version->content];
+                break;
+        }
+
+        return response()->json($response);
+    }
+
     public function update(Request $request, $id): JsonResponse
     {
         $version = ContentPackVersion::findOrFail($id);
+
         $validated = $request->validate([
-            'version' => 'sometimes|required|string|max:255',
-            'checksum' => 'sometimes|required|string',
-            'size_bytes' => 'sometimes|required|integer',
-            'payload' => 'sometimes|required|array',
-            'min_app_version' => 'sometimes|required|string',
+            'version'      => 'sometimes|required|string|max:255',
+            'payload'      => 'sometimes|required|array',
             'published_at' => 'nullable|date',
         ]);
 
-        if (isset($validated['payload']) && is_array($validated['payload'])) {
-            $validated['payload'] = ContentSchemaValidator::validateAndNormalize(
-                (string) $version->contentPack?->game_type,
-                ContentPayloadFormatter::normalize($validated['payload'])
-            );
+        if ($request->has('payload')) {
+            $payload = $request->input('payload');
+            $gameType = $payload['game_type'] ?? $version->game_type;
+
+            // Apply strict normalization before saving to the DB
+            $version->content   = $this->normalizePayload($payload, $gameType);
+            $version->game_type = $gameType;
+            $version->meta      = $payload['meta'] ?? $version->meta;
         }
 
-        $version->update($validated);
-        return response()->json($version);
+        $version->update($request->except(['payload', 'game_type']));
+        
+        return response()->json(['message' => 'Updated successfully', 'version' => $version]);
     }
 
-    // Delete a version
     public function destroy($id): JsonResponse
     {
         $version = ContentPackVersion::findOrFail($id);
