@@ -7,6 +7,7 @@ use App\Models\ContentPackVersion;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 class ContentPackVersionController extends Controller
 {
@@ -32,21 +33,38 @@ class ContentPackVersionController extends Controller
             'min_app_version' => 'nullable|string',
         ]);
 
-        // PASS-THROUGH: Store the payload exactly as it arrived.
-        // No indexing, no extraction, no transformation.
-        $version = ContentPackVersion::create([
-            'content_pack_id' => $validated['content_pack_id'],
-            'version'         => $validated['version'],
-            'checksum'        => $validated['checksum'],
-            'content'         => $validated['payload'], // Raw JSON object stored
-            'game_type'       => $validated['payload']['game_type'] ?? 'unknown',
-            'meta'            => [
-                'min_app_version' => $validated['min_app_version'],
-                'size_bytes'      => $validated['size_bytes'],
-            ],
-        ]);
+        $version = DB::transaction(function () use ($validated): ContentPackVersion {
+            // PASS-THROUGH: Store the payload exactly as it arrived.
+            // No indexing, no extraction, no transformation.
+            $version = ContentPackVersion::create([
+                'content_pack_id' => $validated['content_pack_id'],
+                'version'         => $validated['version'],
+                'checksum'        => $validated['checksum'],
+                'content'         => $validated['payload'], // Raw JSON object stored
+                'game_type'       => $validated['payload']['game_type'] ?? 'unknown',
+                'meta'            => [
+                    'min_app_version' => $validated['min_app_version'],
+                    'size_bytes'      => $validated['size_bytes'],
+                ],
+                'published_at'    => now(),
+            ]);
 
-        return response()->json(['message' => 'Saved successfully', 'id' => $version->id], 200);
+            ContentPack::query()
+                ->whereKey($validated['content_pack_id'])
+                ->update([
+                    'latest_published_version' => $validated['version'],
+                ]);
+
+            return $version;
+        });
+
+        return response()->json([
+            'message' => 'Saved successfully',
+            'id' => $version->id,
+            'content_pack_id' => $version->content_pack_id,
+            'version' => $version->version,
+            'published_at' => optional($version->published_at)->toISOString(),
+        ], 201);
     }
 
     public function update(Request $request, $id): JsonResponse
