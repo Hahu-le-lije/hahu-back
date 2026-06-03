@@ -21,56 +21,30 @@ class ContentPackVersionController extends Controller
         return response()->json($versions);
     }
 
-    /**
-     * Normalizes incoming payload to store only the core data in the DB.
-     */
-    private function normalizePayload(array $payload, string $gameType): array
-    {
-        $data = match ($gameType) {
-            'story_quiz' => $payload['content']['stories'] ?? ($payload['stories'] ?? null),
-            'fidel_tracing' => $payload['fidel_tracing']['levels'] ?? null,
-            'word_builder', 'voice_to_word', 'fill_in_the_blank', 'picture_to_word' => $payload['content']['levels'] ?? null,
-            default => $payload['content']['levels'] ?? ($payload['content'] ?? null)
-        };
-
-        return $data ?? [];
-    }
-
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'content_pack_id' => 'required|exists:content_packs,id',
             'version'         => 'required|string',
-            'payload'         => 'required|array',
+            'payload'         => 'required|array', // Accepts the JSON object
             'checksum'        => 'required|string',
+            'size_bytes'      => 'required|integer',
             'min_app_version' => 'nullable|string',
-            'published_at'    => 'nullable|date',
-            'size_bytes'      => 'nullable|integer',
         ]);
 
-        $payload = $request->input('payload');
-        if (empty($payload)) {
-            return response()->json(['message' => 'Payload is empty'], 422);
-        }
-
-        $gameType = $payload[0]['game_type'] ?? 'default';
-
-        // Use updateOrCreate to prevent the Unique Constraint Violation
-        $version = ContentPackVersion::updateOrCreate(
-            [
-                'content_pack_id' => $validated['content_pack_id'],
-                'version'         => $validated['version'],
+        // PASS-THROUGH: Store the payload exactly as it arrived.
+        // No indexing, no extraction, no transformation.
+        $version = ContentPackVersion::create([
+            'content_pack_id' => $validated['content_pack_id'],
+            'version'         => $validated['version'],
+            'checksum'        => $validated['checksum'],
+            'content'         => $validated['payload'], // Raw JSON object stored
+            'game_type'       => $validated['payload']['game_type'] ?? 'unknown',
+            'meta'            => [
+                'min_app_version' => $validated['min_app_version'],
+                'size_bytes'      => $validated['size_bytes'],
             ],
-            [
-                'checksum'  => $validated['checksum'],
-                'meta'      => [
-                    'min_app_version' => $request->input('min_app_version'),
-                    'size_bytes'      => $request->input('size_bytes') ?? 0, 
-                ],
-                'game_type' => $gameType,
-                'content'   => $this->normalizePayload($payload[0], $gameType),
-            ]
-        );
+        ]);
 
         return response()->json(['message' => 'Saved successfully', 'id' => $version->id], 200);
     }
@@ -88,21 +62,19 @@ class ContentPackVersionController extends Controller
         ]);
 
         if ($request->has('payload')) {
-            $payload = $request->input('payload');
-            // Use [0] because your payload is an array
-            $gameType = $payload[0]['game_type'] ?? $version->game_type;
-
-            $version->content   = $this->normalizePayload($payload[0], $gameType);
-            $version->game_type = $gameType;
+            $fullPayload = $request->input('payload')[0]; 
             
-            // Update meta with new values if provided
+            // Directly assign the raw payload to 'content'
+            $version->content   = $fullPayload; 
+            $version->game_type = $fullPayload['game_type'] ?? $version->game_type;
+            
+            // Update meta
             $version->meta = [
                 'min_app_version' => $request->input('min_app_version', $version->meta['min_app_version'] ?? null),
                 'size_bytes'      => $request->input('size_bytes', $version->meta['size_bytes'] ?? null),
-            ];
+         ];
         }
 
-        // Accept checksum from frontend if provided, otherwise keep existing
         if ($request->has('checksum')) {
             $version->checksum = $request->input('checksum');
         }

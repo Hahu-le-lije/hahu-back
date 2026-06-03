@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\ContentPack;
-use App\Support\ContentPayloadFormatter;
-use App\Support\ContentSchemaValidator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -172,6 +170,8 @@ class ContentPackController extends Controller
         ]);
     }
 
+    // Inside ContentPackController.php
+
     public function download(string $slug): JsonResponse
     {
         $pack = ContentPack::query()
@@ -186,21 +186,7 @@ class ContentPackController extends Controller
             abort(404, 'No published version found.');
         }
 
-        // QUERY THE CONTENT TABLE INSTEAD OF VERSION PAYLOAD
-        $contentItems = \App\Models\Content::where('content_pack_version_id', $version->id)
-            ->active()
-            ->ordered()
-            ->get();
-
-        // Transform into the structure your app expects
-        $data = $contentItems->map(fn($item) => [
-            'type' => $item->type,
-            'title' => $item->title,
-            'description' => $item->description,
-            'content' => $item->content,
-            'difficulty' => $item->difficulty,
-        ]);
-
-        return response()->json($data);
+        // RETURN THE RAW STORED BLOB
+        return response()->json($version->content);
     }
 }
