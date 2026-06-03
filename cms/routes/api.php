@@ -5,6 +5,7 @@ use App\Http\Controllers\ContentPackController;
 use App\Http\Controllers\ContentPackVersionController;
 use App\Http\Controllers\ParentController;
 use App\Http\Controllers\SubjectController;
+use App\Http\Controllers\TaskRecommendationController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -51,8 +52,8 @@ Route::prefix('subjects')->group(function () {
 // --- CHILDREN TASK ROUTES ---
 Route::prefix('children')->group(function () {
     Route::middleware('clerk.auth')->group(function () {
-        Route::get('{child_id}/tasks/recommendations', [\App\Http\Controllers\TaskRecommendationController::class, 'recommendations']);
-        Route::post('{child_id}/tasks/assign', [\App\Http\Controllers\TaskRecommendationController::class, 'assign']);
+        Route::get('{child_id}/tasks/recommendations', [TaskRecommendationController::class, 'recommendations']);
+        Route::post('{child_id}/tasks/assign', [TaskRecommendationController::class, 'assign']);
     });
 });
 
@@ -67,7 +68,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('content-pack-versions', [ContentPackVersionController::class, 'index']);
     Route::post('content-pack-versions', [ContentPackVersionController::class, 'store']);
     Route::put('content-pack-versions/{id}', [ContentPackVersionController::class, 'update']);
-    Route::delete('content-pack-versions/{id}', [ContentPackVersionController:: sz, 'destroy']);
+    Route::delete('content-pack-versions/{id}', [ContentPackVersionController::class, 'destroy']);
 
     Route::get('children', function () {
         $children = DB::table('assigned_tasks')->distinct()->pluck('child_id');
