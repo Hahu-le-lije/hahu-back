@@ -8,6 +8,7 @@ use App\Http\Controllers\SubjectController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
+// --- PARENT ROUTES ---
 Route::prefix('parents')->group(function () {
     Route::post('sign-up', [ParentController::class, 'signUp']);
 
@@ -18,6 +19,7 @@ Route::prefix('parents')->group(function () {
     });
 });
 
+// --- AUTH ROUTES ---
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
 
@@ -27,18 +29,26 @@ Route::prefix('auth')->group(function () {
     });
 });
 
+// --- CONTENT PACK ROUTES ---
+
+// Protected routes (require JWT)
 Route::prefix('content')->middleware('jwt.auth')->group(function () {
     Route::get('packs', [ContentPackController::class, 'index'])->name('content.packs.index');
     Route::get('packs/{slug}/manifest', [ContentPackController::class, 'manifest'])->name('content.packs.manifest');
+});
+
+// PUBLIC download route (No JWT required)
+Route::prefix('content')->group(function () {
     Route::get('packs/{slug}/download', [ContentPackController::class, 'download'])->name('content.packs.download');
 });
 
+// --- SUBJECT ROUTES ---
 Route::prefix('subjects')->group(function () {
     Route::get('/', [SubjectController::class, 'index']);
     Route::put('/', [SubjectController::class, 'update']);
 });
 
-// Task recommendations and assignment endpoints
+// --- CHILDREN TASK ROUTES ---
 Route::prefix('children')->group(function () {
     Route::middleware('clerk.auth')->group(function () {
         Route::get('{child_id}/tasks/recommendations', [\App\Http\Controllers\TaskRecommendationController::class, 'recommendations']);
@@ -46,6 +56,7 @@ Route::prefix('children')->group(function () {
     });
 });
 
+// --- ADMIN ROUTES ---
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
     Route::get('content-packs', [ContentPackController::class, 'adminIndex']);
     Route::get('content-packs/{id}', [ContentPackController::class, 'show']);
@@ -56,9 +67,8 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('content-pack-versions', [ContentPackVersionController::class, 'index']);
     Route::post('content-pack-versions', [ContentPackVersionController::class, 'store']);
     Route::put('content-pack-versions/{id}', [ContentPackVersionController::class, 'update']);
-    Route::delete('content-pack-versions/{id}', [ContentPackVersionController::class, 'destroy']);
+    Route::delete('content-pack-versions/{id}', [ContentPackVersionController:: sz, 'destroy']);
 
-    // Admin helper endpoints for children and assigned tasks
     Route::get('children', function () {
         $children = DB::table('assigned_tasks')->distinct()->pluck('child_id');
         return response()->json(['children' => $children]);
